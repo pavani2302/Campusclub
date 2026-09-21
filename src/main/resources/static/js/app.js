@@ -1,0 +1,1 @@
+async function api(url,method='GET',body=null){const opts={method,headers:{'Content-Type':'application/json'}};if(body)opts.body=JSON.stringify(body);try{const res=await fetch(url,opts);let data={};try{data=await res.json()}catch(e){}return {ok:res.ok,status:res.status,data}}catch(e){return {ok:false,status:0,data:{message:'Network error'}}}}
