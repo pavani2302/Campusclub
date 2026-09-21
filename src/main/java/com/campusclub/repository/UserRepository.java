@@ -1,3 +1,16 @@
 package com.campusclub.repository;
-import com.campusclub.entity.User; import org.springframework.data.jpa.repository.JpaRepository; import java.util.Optional;
-public interface UserRepository extends JpaRepository<User,Long>{ Optional<User> findByEmail(String email); long countByRole(com.campusclub.entity.Role role); }
+
+import com.campusclub.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface UserRepository
+        extends JpaRepository<User, Long> {
+
+    Optional<User> findByEmail(String email);
+
+    long countByRole(
+            com.campusclub.entity.Role role
+    );
+}

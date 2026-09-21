@@ -1,1 +1,173 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Register</title><link rel="stylesheet" href="/css/style.css"></head><body><div class="auth"><div class="auth-card"><a class="back" href="/">← Home</a><h1>Create account</h1><p>Join Campus Club</p><form id="form"><input id="name" placeholder="Full name" required><input id="email" type="email" placeholder="Email" required><input id="studentId" placeholder="Student ID"><input id="department" placeholder="Department"><input id="password" type="password" placeholder="Password (min 6 chars)" minlength="6" required><button class="btn">Register</button></form><div id="msg"></div><p>Already registered? <a href="/login.html">Login</a></p></div></div><script src="/js/app.js"></script><script>form.addEventListener('submit',async e=>{e.preventDefault();const r=await api('/api/auth/register','POST',{name:name.value,email:email.value,password:password.value,studentId:studentId.value,department:department.value});msg.textContent=r.data.message||'';msg.className=r.ok?'success':'error';if(r.ok)setTimeout(()=>location.href='/login.html',1000)})</script></body></html>
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Register - Campus Club</title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+</head>
+
+<body>
+
+<div class="auth">
+
+    <div class="auth-card">
+
+        <a class="back" href="/">
+            ← Home
+        </a>
+
+        <h1>Create account</h1>
+
+        <p>Join Campus Club</p>
+
+        <form id="registerForm">
+
+            <input
+                id="name"
+                type="text"
+                placeholder="Full name"
+                required
+            >
+
+            <input
+                id="email"
+                type="email"
+                placeholder="Email"
+                required
+            >
+
+            <input
+                id="studentId"
+                type="text"
+                placeholder="Student ID"
+            >
+
+            <input
+                id="department"
+                type="text"
+                placeholder="Department"
+            >
+
+            <input
+                id="password"
+                type="password"
+                placeholder="Password (minimum 6 characters)"
+                minlength="6"
+                required
+            >
+
+            <button
+                type="submit"
+                class="btn"
+            >
+                Register
+            </button>
+
+        </form>
+
+        <div id="msg"></div>
+
+        <p>
+            Already registered?
+            <a href="/login.html">
+                Login
+            </a>
+        </p>
+
+    </div>
+
+</div>
+
+<script src="/js/app.js"></script>
+
+<script>
+
+const registerForm =
+    document.getElementById("registerForm");
+
+const nameInput =
+    document.getElementById("name");
+
+const emailInput =
+    document.getElementById("email");
+
+const studentIdInput =
+    document.getElementById("studentId");
+
+const departmentInput =
+    document.getElementById("department");
+
+const passwordInput =
+    document.getElementById("password");
+
+const message =
+    document.getElementById("msg");
+
+registerForm.addEventListener(
+    "submit",
+    async function (event) {
+
+        event.preventDefault();
+
+        message.textContent = "";
+        message.className = "";
+
+        const result = await api(
+            "/api/auth/register",
+            "POST",
+            {
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim(),
+                password: passwordInput.value,
+                studentId: studentIdInput.value.trim(),
+                department: departmentInput.value.trim()
+            }
+        );
+
+        if (result.ok) {
+
+            message.textContent =
+                result.data.message ||
+                "Registration successful";
+
+            message.className =
+                "success";
+
+            setTimeout(
+                function () {
+                    window.location.href =
+                        "/login.html";
+                },
+                1000
+            );
+
+        } else {
+
+            message.textContent =
+                result.data.message ||
+                "Registration failed";
+
+            message.className =
+                "error";
+        }
+    }
+);
+
+</script>
+
+</body>
+</html>
+```
