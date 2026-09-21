@@ -1,4 +1,4 @@
-```javascript
+
 async function api(
     url,
     method = "GET",
@@ -58,4 +58,3 @@ async function api(
         };
     }
 }
-```

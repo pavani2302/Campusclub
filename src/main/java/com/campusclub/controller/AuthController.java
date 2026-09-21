@@ -1,4 +1,3 @@
-```java
 package com.campusclub.controller;
 
 import com.campusclub.entity.Role;
@@ -267,4 +266,3 @@ public class AuthController {
         );
     }
 }
-```

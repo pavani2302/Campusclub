@@ -1,4 +1,4 @@
-```javascript
+
 let me = null;
 let clubs = [];
 let events = [];
@@ -619,4 +619,3 @@ if (logoutButton) {
 // =========================================================
 
 load();
-```
