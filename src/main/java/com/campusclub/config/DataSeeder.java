@@ -26,10 +26,9 @@ public class DataSeeder {
 
         return args -> {
 
-            // =========================================================
-            // CREATE ADMIN USER
-            // =========================================================
-
+            // =========================
+            // ADMIN USER
+            // =========================
             if (userRepository.findByEmail("admin@campusclub.com").isEmpty()) {
 
                 User admin = new User();
@@ -44,10 +43,9 @@ public class DataSeeder {
                 userRepository.save(admin);
             }
 
-            // =========================================================
-            // CREATE DEMO STUDENT
-            // =========================================================
-
+            // =========================
+            // DEMO STUDENT
+            // =========================
             if (userRepository.findByEmail("student@campusclub.com").isEmpty()) {
 
                 User student = new User();
@@ -62,10 +60,9 @@ public class DataSeeder {
                 userRepository.save(student);
             }
 
-            // =========================================================
-            // CREATE DEMO CLUB
-            // =========================================================
-
+            // =========================
+            // CLUB
+            // =========================
             Club club;
 
             if (clubRepository.count() == 0) {
@@ -88,29 +85,32 @@ public class DataSeeder {
                 club = clubRepository.findAll().get(0);
             }
 
-            // =========================================================
-            // CREATE DEMO EVENT
-            // =========================================================
-
+            // =========================
+            // EVENT
+            // =========================
             if (eventRepository.count() == 0) {
 
                 Event event = new Event();
 
-                event.setTitle("Java Programming Workshop");
+                event.setTitle(
+                        "Java Programming Workshop"
+                );
 
                 event.setDescription(
                         "Introduction to Java programming and " +
                         "object-oriented programming."
                 );
 
-                /*
-                 * Event.eventDate in the current project is a String,
-                 * therefore convert LocalDateTime to String.
-                 */
                 event.setEventDate(
                         LocalDateTime.now()
                                 .plusDays(7)
                                 .toString()
+                );
+
+                // FIX:
+                // venue is required by PostgreSQL
+                event.setVenue(
+                        "Campus Computer Lab - Block A"
                 );
 
                 event.setClub(club);
