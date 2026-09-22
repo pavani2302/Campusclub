@@ -4,10 +4,8 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(
-        name = "event_registrations",
-        uniqueConstraints = @UniqueConstraint(
-                columnNames = {"event_id", "user_id"}
-        )
+    name = "event_registrations",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"event_id", "user_id"})
 )
 public class EventRegistration {
 
@@ -21,11 +19,33 @@ public class EventRegistration {
     @ManyToOne(optional = false)
     private User user;
 
+    /*
+     * Existing field.
+     *
+     * false = absent when attendance has been marked
+     * true  = present when attendance has been marked
+     */
     @Column(nullable = false)
     private boolean attended = false;
 
+    /*
+     * New field.
+     *
+     * null / false = attendance has not been taken yet
+     * true         = attendance has been taken
+     *
+     * Boolean is intentionally used so old database rows can remain
+     * compatible while Hibernate updates the schema.
+     */
+    @Column(nullable = true)
+    private Boolean attendanceMarked = false;
+
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public Event getEvent() {
@@ -50,5 +70,25 @@ public class EventRegistration {
 
     public void setAttended(boolean attended) {
         this.attended = attended;
+    }
+
+    public Boolean getAttendanceMarked() {
+        return attendanceMarked;
+    }
+
+    public void setAttendanceMarked(Boolean attendanceMarked) {
+        this.attendanceMarked = attendanceMarked;
+    }
+
+    /*
+     * Helper method used by the application/UI.
+     */
+    public String getAttendanceStatus() {
+
+        if (attendanceMarked == null || !attendanceMarked) {
+            return "NOT_MARKED";
+        }
+
+        return attended ? "PRESENT" : "ABSENT";
     }
 }

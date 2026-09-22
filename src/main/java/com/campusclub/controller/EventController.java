@@ -8,8 +8,9 @@ import com.campusclub.repository.ClubRepository;
 import com.campusclub.repository.EventRegistrationRepository;
 import com.campusclub.repository.EventRepository;
 import com.campusclub.repository.UserRepository;
+
 import jakarta.servlet.http.HttpSession;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -38,17 +39,11 @@ public class EventController {
         this.users = users;
     }
 
-    // ---------------------------------------------------------
-    // GET ALL EVENTS
-    // ---------------------------------------------------------
     @GetMapping
     public List<Event> all() {
         return events.findAllByOrderByEventDateAsc();
     }
 
-    // ---------------------------------------------------------
-    // EVENT REQUEST
-    // ---------------------------------------------------------
     public record EventRequest(
             String title,
             String description,
@@ -58,123 +53,123 @@ public class EventController {
     ) {
     }
 
-    // ---------------------------------------------------------
-    // CREATE EVENT - ADMIN ONLY
-    // ---------------------------------------------------------
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> create(
             @RequestBody EventRequest request
     ) {
 
-        if (request.title() == null || request.title().isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Event title is required"));
-        }
-
-        if (request.clubId() == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Please select a club"));
-        }
-
-        Club club = clubs.findById(request.clubId()).orElse(null);
+        Club club =
+                clubs.findById(request.clubId()).orElse(null);
 
         if (club == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Club not found"));
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "message",
+                            "Club not found"
+                    ));
         }
 
         Event event = new Event();
 
-        event.setTitle(request.title().trim());
-        event.setDescription(
-                request.description() == null
-                        ? ""
-                        : request.description().trim()
-        );
+        event.setTitle(request.title());
+        event.setDescription(request.description());
         event.setEventDate(request.eventDate());
         event.setVenue(request.venue());
         event.setClub(club);
 
-        Event saved = events.save(event);
-
-        return ResponseEntity.ok(saved);
-    }
-
-    // ---------------------------------------------------------
-    // DELETE EVENT - ADMIN ONLY
-    // ---------------------------------------------------------
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> delete(
-            @PathVariable Long id
-    ) {
-
-        if (!events.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Event not found"));
-        }
-
-        events.deleteById(id);
-
         return ResponseEntity.ok(
-                Map.of("message", "Event deleted successfully")
+                events.save(event)
         );
     }
 
-    // ---------------------------------------------------------
-    // STUDENT REGISTER FOR EVENT
-    // ---------------------------------------------------------
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void delete(@PathVariable Long id) {
+        events.deleteById(id);
+    }
+
     @PostMapping("/{id}/register")
     public ResponseEntity<?> register(
             @PathVariable Long id,
             HttpSession session
     ) {
 
-        Long userId = getUserId(session);
+        Long userId =
+                (Long) session.getAttribute("userId");
 
         if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Please login first"));
-        }
-
-        if (!events.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Event not found"));
+            return ResponseEntity
+                    .status(401)
+                    .body(Map.of(
+                            "message",
+                            "Please login first"
+                    ));
         }
 
         if (regs.existsByEventIdAndUserId(id, userId)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Already registered for this event"));
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "message",
+                            "Already registered"
+                    ));
         }
 
-        Event event = events.findById(id).orElseThrow();
-        User user = users.findById(userId).orElseThrow();
+        Event event =
+                events.findById(id).orElse(null);
 
-        EventRegistration registration = new EventRegistration();
+        if (event == null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "message",
+                            "Event not found"
+                    ));
+        }
+
+        User user =
+                users.findById(userId).orElse(null);
+
+        if (user == null) {
+            return ResponseEntity
+                    .status(401)
+                    .body(Map.of(
+                            "message",
+                            "User not found"
+                    ));
+        }
+
+        EventRegistration registration =
+                new EventRegistration();
 
         registration.setEvent(event);
         registration.setUser(user);
 
-        // false = absent until admin marks Present
+        /*
+         * Attendance starts as NOT MARKED.
+         */
         registration.setAttended(false);
+        registration.setAttendanceMarked(false);
 
         regs.save(registration);
 
         return ResponseEntity.ok(
-                Map.of("message", "Registered for event successfully")
+                Map.of(
+                        "message",
+                        "Registered for event successfully"
+                )
         );
     }
 
-    // ---------------------------------------------------------
-    // MY EVENT REGISTRATIONS
-    // ---------------------------------------------------------
     @GetMapping("/mine")
     public List<EventRegistration> mine(
             HttpSession session
     ) {
 
-        Long userId = getUserId(session);
+        Long userId =
+                (Long) session.getAttribute("userId");
 
         if (userId == null) {
             return List.of();
@@ -183,9 +178,6 @@ public class EventController {
         return regs.findByUserId(userId);
     }
 
-    // ---------------------------------------------------------
-    // ADMIN - VIEW EVENT REGISTRATIONS
-    // ---------------------------------------------------------
     @GetMapping("/{id}/registrations")
     @PreAuthorize("hasRole('ADMIN')")
     public List<EventRegistration> registrations(
@@ -195,9 +187,12 @@ public class EventController {
         return regs.findByEventId(id);
     }
 
-    // ---------------------------------------------------------
-    // ADMIN - MARK ATTENDANCE
-    // ---------------------------------------------------------
+    /*
+     * Existing endpoint kept for compatibility.
+     *
+     * Example:
+     * PUT /api/events/1/registrations/2/attendance?attended=true
+     */
     @PutMapping("/registrations/{registrationId}/attendance")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> attendance(
@@ -209,11 +204,16 @@ public class EventController {
                 regs.findById(registrationId).orElse(null);
 
         if (registration == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Registration not found"));
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "message",
+                            "Registration not found"
+                    ));
         }
 
         registration.setAttended(attended);
+        registration.setAttendanceMarked(true);
 
         regs.save(registration);
 
@@ -221,27 +221,9 @@ public class EventController {
                 Map.of(
                         "message",
                         attended
-                                ? "Student marked Present"
-                                : "Student marked Absent"
+                                ? "Attendance marked Present"
+                                : "Attendance marked Absent"
                 )
         );
-    }
-
-    // ---------------------------------------------------------
-    // HELPER
-    // ---------------------------------------------------------
-    private Long getUserId(HttpSession session) {
-
-        Object value = session.getAttribute("userId");
-
-        if (value instanceof Long) {
-            return (Long) value;
-        }
-
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-
-        return null;
     }
 }

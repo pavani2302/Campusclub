@@ -5,22 +5,21 @@ async function api(
 ) {
 
     const options = {
-
-        method,
+        method: method,
 
         credentials: "same-origin",
 
         headers: {
             "Accept": "application/json"
         }
-
     };
 
 
     if (body !== null) {
 
-        options.headers["Content-Type"] =
-            "application/json";
+        options.headers[
+            "Content-Type"
+        ] = "application/json";
 
         options.body =
             JSON.stringify(body);
@@ -30,7 +29,11 @@ async function api(
     try {
 
         const response =
-            await fetch(url, options);
+            await fetch(
+                url,
+                options
+            );
+
 
         let data = {};
 
@@ -56,18 +59,12 @@ async function api(
 
 
         return {
-
             ok: response.ok,
-
             status: response.status,
-
-            data
-
+            data: data
         };
 
     } catch (error) {
-
-        console.error(error);
 
         return {
 
@@ -77,9 +74,8 @@ async function api(
 
             data: {
                 message:
-                    "Unable to connect to server."
+                    "Unable to connect to the server."
             }
-
         };
     }
 }

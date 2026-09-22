@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -7,15 +8,18 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0">
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Login | CampusClub</title>
 
     <link
         rel="stylesheet"
-        href="/css/style.css">
+        href="/css/style.css"
+    >
 
 </head>
+
 
 <body>
 
@@ -24,67 +28,74 @@
 
     <!-- LEFT -->
 
-    <div class="auth-brand-panel">
+    <section class="auth-brand-panel">
 
         <div class="brand">
             Campus<span>Club</span>
         </div>
 
-        <div class="eyebrow">
-            CAMPUS CLUB MANAGEMENT
+
+        <div>
+
+            <div class="eyebrow">
+                CAMPUS CLUB MANAGEMENT
+            </div>
+
+            <h1>
+                Your campus.
+                Your community.
+            </h1>
+
+            <p>
+                Connect with clubs, discover events,
+                register for activities and build your
+                campus experience from one platform.
+            </p>
+
+
+            <div class="feature-list">
+
+                <div>
+                    ✓ Discover campus clubs
+                </div>
+
+                <div>
+                    ✓ Register for events
+                </div>
+
+                <div>
+                    ✓ Track event attendance
+                </div>
+
+                <div>
+                    ✓ Simple student dashboard
+                </div>
+
+            </div>
+
         </div>
 
-        <h1>
-            Your campus.
-            <br>
-            Your <span>community.</span>
-        </h1>
-
-        <p>
-            Connect with clubs, discover events, register for activities
-            and build your campus experience from one platform.
-        </p>
-
-        <div class="feature-list">
-
-            <div class="feature-item">
-                <span>✓</span>
-                Discover campus clubs
-            </div>
-
-            <div class="feature-item">
-                <span>✓</span>
-                Register for events
-            </div>
-
-            <div class="feature-item">
-                <span>✓</span>
-                Track event attendance
-            </div>
-
-            <div class="feature-item">
-                <span>✓</span>
-                Simple student dashboard
-            </div>
-
-        </div>
-
-    </div>
+    </section>
 
 
     <!-- RIGHT -->
 
-    <div class="auth-area">
+    <section class="auth-side">
 
         <div class="auth-card">
 
-            <div class="brand">
-                Campus<span>Club</span>
-            </div>
+            <a
+                href="/"
+                class="auth-back"
+            >
+                ← Back to Home
+            </a>
+
 
             <h2>
                 Welcome back
             </h2>
+
 
             <p>
                 Login to access your CampusClub dashboard.
@@ -93,72 +104,52 @@
 
             <form
                 id="loginForm"
-                class="auth-form">
+                class="auth-form"
+            >
 
-                <label>
+                <label class="auth-label">
+
                     Email
 
                     <input
                         id="email"
                         type="email"
                         placeholder="you@example.com"
-                        autocomplete="email"
-                        required>
+                        required
+                    >
 
                 </label>
 
 
-                <label>
+                <label class="auth-label">
+
                     Password
 
                     <input
                         id="password"
                         type="password"
                         placeholder="Enter your password"
-                        autocomplete="current-password"
-                        required>
+                        required
+                    >
 
                 </label>
 
 
                 <button
-                    class="primary-btn"
-                    type="submit">
-
+                    type="submit"
+                    class="btn btn-primary"
+                >
                     Login to Dashboard →
-
                 </button>
+
+
+                <div
+                    id="msg"
+                    class="form-message"
+                ></div>
 
             </form>
 
-
-            <div
-                id="msg"
-                class="auth-message">
-            </div>
-
-
-            <div class="demo-box">
-
-                <strong>
-                    Demo accounts
-                </strong>
-
-                <br>
-
-                <b>Admin:</b>
-                admin@campusclub.com
-                /
-                admin123
-
-                <br>
-
-                <b>Student:</b>
-                student@campusclub.com
-                /
-                student123
-
-            </div>
 
 
             <div class="auth-footer">
@@ -169,29 +160,28 @@
                     Create an account
                 </a>
 
-                <br><br>
-
-                <a
-                    class="back-link"
-                    href="/">
-                    ← Back to Home
-                </a>
-
             </div>
 
         </div>
 
-    </div>
+    </section>
 
 </div>
 
 
 <script src="/js/app.js"></script>
 
+
 <script>
 
 const loginForm =
     document.getElementById("loginForm");
+
+const email =
+    document.getElementById("email");
+
+const password =
+    document.getElementById("password");
 
 const msg =
     document.getElementById("msg");
@@ -203,11 +193,12 @@ loginForm.addEventListener(
 
         event.preventDefault();
 
+
         msg.textContent =
-            "Signing in...";
+            "Signing you in...";
 
         msg.className =
-            "auth-message";
+            "form-message";
 
 
         const response =
@@ -216,15 +207,10 @@ loginForm.addEventListener(
                 "POST",
                 {
                     email:
-                        document
-                            .getElementById("email")
-                            .value
-                            .trim(),
+                        email.value.trim(),
 
                     password:
-                        document
-                            .getElementById("password")
-                            .value
+                        password.value
                 }
             );
 
@@ -232,26 +218,23 @@ loginForm.addEventListener(
         if (response.ok) {
 
             msg.textContent =
-                "Login successful. Redirecting...";
+                "Login successful. Opening dashboard...";
 
             msg.className =
-                "auth-message success";
+                "form-message success";
 
-            setTimeout(() => {
 
-                window.location.href =
-                    "/dashboard.html";
-
-            }, 400);
+            window.location.href =
+                "/dashboard.html";
 
         } else {
 
             msg.textContent =
-                response.data.message ||
+                response.data?.message ||
                 "Invalid email or password.";
 
             msg.className =
-                "auth-message error";
+                "form-message error";
         }
 
     }
@@ -260,4 +243,5 @@ loginForm.addEventListener(
 </script>
 
 </body>
+
 </html>

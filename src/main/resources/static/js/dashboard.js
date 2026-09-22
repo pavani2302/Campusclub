@@ -1,17 +1,22 @@
 let me = null;
+
 let clubs = [];
 let events = [];
+
 let clubMembers = [];
 let eventRegistrations = [];
+
 
 const $ = (id) => document.getElementById(id);
 
 
-// ============================================================
-// INITIAL LOAD
-// ============================================================
+/*
+ * =========================
+ * INITIAL LOAD
+ * =========================
+ */
 
-async function load() {
+async function loadDashboard() {
 
     const response = await api("/api/auth/me");
 
@@ -27,39 +32,42 @@ async function load() {
     if (me.role === "ADMIN") {
 
         $("adminPanel").classList.remove("hidden");
+        $("studentArea").classList.add("hidden");
 
-        await loadStats();
-        await loadAdminEvents();
-
-        await loadClubMembers();
-        await loadEventRegistrations();
+        await loadAdminDashboard();
 
     } else {
 
-        $("myRegistrationsSection").classList.remove("hidden");
-    }
+        $("adminPanel").classList.add("hidden");
+        $("studentArea").classList.remove("hidden");
 
-    await loadClubs();
-    await loadEvents();
-    await loadMine();
+        await loadStudentDashboard();
+    }
 }
 
 
-// ============================================================
-// PROFILE
-// ============================================================
+/*
+ * =========================
+ * PROFILE
+ * =========================
+ */
 
 function updateProfile() {
 
     const firstLetter =
         (me.name || "U").charAt(0).toUpperCase();
 
-    $("userName").textContent = me.name;
-    $("welcomeName").textContent = me.name;
-    $("userRole").textContent = me.role;
+    $("userName").textContent =
+        me.name || "User";
 
-    $("profileName").textContent = me.name;
-    $("profileEmail").textContent = me.email;
+    $("welcomeName").textContent =
+        me.name || "User";
+
+    $("profileName").textContent =
+        me.name || "User";
+
+    $("profileEmail").textContent =
+        me.email || "";
 
     $("profileStudentId").textContent =
         me.studentId || "Not provided";
@@ -67,28 +75,81 @@ function updateProfile() {
     $("profileDepartment").textContent =
         me.department || "Not provided";
 
-    $("profileRole").textContent = me.role;
+    $("profileAccountType").textContent =
+        me.role || "STUDENT";
 
-    $("roleBadge").textContent = me.role;
+    $("roleBadge").textContent =
+        me.role || "STUDENT";
 
-    $("avatar").textContent = firstLetter;
-    $("profileAvatar").textContent = firstLetter;
+    $("topRole").textContent =
+        me.role || "STUDENT";
+
+    $("topAvatar").textContent =
+        firstLetter;
+
+    $("profileAvatar").textContent =
+        firstLetter;
 }
 
 
-// ============================================================
-// ADMIN STATS
-// ============================================================
+/*
+ * =========================
+ * STUDENT DASHBOARD
+ * =========================
+ */
+
+async function loadStudentDashboard() {
+
+    await loadClubs();
+
+    await loadEvents();
+
+    await loadMyRegistrations();
+}
+
+
+/*
+ * =========================
+ * ADMIN DASHBOARD
+ * =========================
+ */
+
+async function loadAdminDashboard() {
+
+    await loadStats();
+
+    await loadClubs();
+
+    await loadAdminEvents();
+
+    await loadClubMembers();
+
+    await loadEventRegistrations();
+
+    populateAttendanceEvents();
+
+    await loadAttendance();
+}
+
+
+/*
+ * =========================
+ * STATS
+ * =========================
+ */
 
 async function loadStats() {
 
-    const response = await api("/api/admin/stats");
+    const response =
+        await api("/api/admin/stats");
 
     if (!response.ok) {
-        showError(
-            $("stats"),
-            "Unable to load admin statistics."
-        );
+
+        $("stats").innerHTML =
+            errorCard(
+                "Unable to load admin statistics."
+            );
+
         return;
     }
 
@@ -96,157 +157,213 @@ async function loadStats() {
 
     $("stats").innerHTML = `
 
-        <div class="stat-card">
-            <div class="stat-icon">👨‍🎓</div>
-            <div>
-                <span>Students</span>
-                <strong>${data.students || 0}</strong>
-            </div>
-        </div>
+        ${statCard(
+            "Students",
+            data.students,
+            "👨‍🎓",
+            "Registered students"
+        )}
+
+        ${statCard(
+            "Clubs",
+            data.clubs,
+            "🏫",
+            "Campus communities"
+        )}
+
+        ${statCard(
+            "Events",
+            data.events,
+            "📅",
+            "Campus events"
+        )}
+
+        ${statCard(
+            "Registrations",
+            data.registrations,
+            "🎟️",
+            "Event registrations"
+        )}
+
+        ${statCard(
+            "Present",
+            data.present,
+            "✓",
+            "Attendance marked"
+        )}
+
+        ${statCard(
+            "Absent",
+            data.absent,
+            "!",
+            "Students absent"
+        )}
+
+        ${statCard(
+            "Not Marked",
+            data.notMarked,
+            "○",
+            "Attendance pending"
+        )}
+
+    `;
+}
+
+
+function statCard(title, value, icon, subtitle) {
+
+    return `
 
         <div class="stat-card">
-            <div class="stat-icon">🏫</div>
-            <div>
-                <span>Clubs</span>
-                <strong>${data.clubs || 0}</strong>
-            </div>
-        </div>
 
-        <div class="stat-card">
-            <div class="stat-icon">📅</div>
-            <div>
-                <span>Events</span>
-                <strong>${data.events || 0}</strong>
+            <div class="stat-icon">
+                ${icon}
             </div>
-        </div>
 
-        <div class="stat-card">
-            <div class="stat-icon">📝</div>
-            <div>
-                <span>Registrations</span>
-                <strong>${data.registrations || 0}</strong>
-            </div>
-        </div>
+            <div class="stat-content">
 
-        <div class="stat-card">
-            <div class="stat-icon">✅</div>
-            <div>
-                <span>Present</span>
-                <strong>${data.present || 0}</strong>
+                <span>
+                    ${esc(title)}
+                </span>
+
+                <strong>
+                    ${Number(value || 0)}
+                </strong>
+
+                <small>
+                    ${esc(subtitle)}
+                </small>
+
             </div>
+
         </div>
 
     `;
 }
 
 
-// ============================================================
-// LOAD CLUBS
-// ============================================================
+/*
+ * =========================
+ * CLUBS
+ * =========================
+ */
 
 async function loadClubs() {
 
-    const response = await api("/api/clubs");
+    const response =
+        await api("/api/clubs");
 
     if (!response.ok) {
 
         $("clubs").innerHTML =
-            `<div class="empty-state">
-                Unable to load clubs.
-             </div>`;
+            errorCard("Unable to load clubs.");
 
         return;
     }
 
-    clubs = response.data || [];
+    clubs = Array.isArray(response.data)
+        ? response.data
+        : [];
 
-    if (!clubs.length) {
 
-        $("clubs").innerHTML =
-            `<div class="empty-state">
-                <div class="empty-icon">🏫</div>
-                <h3>No clubs yet</h3>
-                <p>There are currently no clubs available.</p>
-             </div>`;
+    if ($("eventClub")) {
 
-    } else {
-
-        $("clubs").innerHTML =
-            clubs.map(renderClub).join("");
+        $("eventClub").innerHTML =
+            `<option value="">Select club</option>` +
+            clubs.map(club => `
+                <option value="${club.id}">
+                    ${esc(club.name)}
+                </option>
+            `).join("");
     }
 
-    populateClubSelect();
+
+    if ($("clubs")) {
+
+        if (!clubs.length) {
+
+            $("clubs").innerHTML =
+                emptyCard(
+                    "No clubs available",
+                    "Clubs created by administrators will appear here."
+                );
+
+            return;
+        }
+
+
+        $("clubs").innerHTML =
+            clubs.map(club => {
+
+                return `
+
+                    <article class="club-card">
+
+                        <div class="card-top">
+
+                            <div class="club-icon">
+                                🏫
+                            </div>
+
+                            <span class="soft-badge">
+                                ${esc(club.category || "General")}
+                            </span>
+
+                        </div>
+
+
+                        <h3>
+                            ${esc(club.name)}
+                        </h3>
+
+
+                        <p>
+                            ${esc(
+                                club.description ||
+                                "Campus community"
+                            )}
+                        </p>
+
+
+                        <div class="card-meta">
+
+                            <span>
+                                👤
+                                ${esc(
+                                    club.coordinator ||
+                                    "Coordinator not specified"
+                                )}
+                            </span>
+
+                        </div>
+
+
+                        ${
+                            me.role === "STUDENT"
+                            ? `
+                                <button
+                                    class="btn btn-primary btn-full"
+                                    onclick="joinClub(${club.id})"
+                                >
+                                    Join Club
+                                </button>
+                            `
+                            : ""
+                        }
+
+                    </article>
+
+                `;
+            }).join("");
+    }
 }
 
 
-// ============================================================
-// CLUB CARD
-// ============================================================
-
-function renderClub(club) {
-
-    const category =
-        club.category || "General";
-
-    return `
-
-        <div class="club-card">
-
-            <div class="club-card-top">
-
-                <div class="club-icon">
-                    🏫
-                </div>
-
-                <span class="category-badge">
-                    ${esc(category)}
-                </span>
-
-            </div>
-
-            <h3>
-                ${esc(club.name)}
-            </h3>
-
-            <p>
-                ${esc(
-                    club.description ||
-                    "Campus club for students."
-                )}
-            </p>
-
-            <div class="club-meta">
-
-                <span>
-                    👤
-                    ${esc(
-                        club.coordinator ||
-                        "Coordinator not specified"
-                    )}
-                </span>
-
-            </div>
-
-            ${
-                me.role === "STUDENT"
-                    ? `
-                        <button
-                            class="primary-btn full-btn"
-                            onclick="joinClub(${club.id})">
-                            Join Club
-                        </button>
-                      `
-                    : ""
-            }
-
-        </div>
-    `;
-}
-
-
-// ============================================================
-// JOIN CLUB
-// ============================================================
+/*
+ * =========================
+ * JOIN CLUB
+ * =========================
+ */
 
 async function joinClub(id) {
 
@@ -256,158 +373,138 @@ async function joinClub(id) {
             "POST"
         );
 
-    if (response.ok) {
+    const message =
+        response.data?.message ||
+        "Unable to join club.";
 
-        showToast(
-            response.data.message ||
-            "Joined club successfully",
-            "success"
-        );
-
-        await loadClubs();
-
-    } else {
-
-        showToast(
-            response.data.message ||
-            "Unable to join club",
-            "error"
-        );
-    }
+    showToast(
+        message,
+        response.ok ? "success" : "error"
+    );
 }
 
 
-// ============================================================
-// LOAD EVENTS
-// ============================================================
+/*
+ * =========================
+ * EVENTS
+ * =========================
+ */
 
 async function loadEvents() {
 
-    const response = await api("/api/events");
+    const response =
+        await api("/api/events");
 
     if (!response.ok) {
 
         $("events").innerHTML =
-            `<div class="empty-state">
-                Unable to load events.
-             </div>`;
+            errorCard("Unable to load events.");
 
         return;
     }
 
-    events = response.data || [];
+    events = Array.isArray(response.data)
+        ? response.data
+        : [];
 
-    renderEvents();
-
-    populateEventSelect();
-}
-
-
-// ============================================================
-// RENDER EVENTS
-// ============================================================
-
-function renderEvents() {
 
     if (!events.length) {
 
         $("events").innerHTML =
-            `<div class="empty-state">
-
-                <div class="empty-icon">
-                    📅
-                </div>
-
-                <h3>No upcoming events</h3>
-
-                <p>
-                    Check back later for new campus events.
-                </p>
-
-             </div>`;
+            emptyCard(
+                "No upcoming events",
+                "New campus events will appear here."
+            );
 
         return;
     }
 
+
     $("events").innerHTML =
-        events.map(renderEvent).join("");
+        events.map(event => {
+
+            const eventDate =
+                formatDate(event.eventDate);
+
+            const clubName =
+                event.club?.name ||
+                "Campus Club";
+
+
+            return `
+
+                <article class="event-card">
+
+                    <div class="event-date">
+
+                        <strong>
+                            ${eventDate.day}
+                        </strong>
+
+                        <span>
+                            ${eventDate.month}
+                        </span>
+
+                    </div>
+
+
+                    <div class="event-content">
+
+                        <div class="event-club">
+                            ${esc(clubName)}
+                        </div>
+
+                        <h3>
+                            ${esc(event.title)}
+                        </h3>
+
+                        <p>
+                            ${esc(event.description)}
+                        </p>
+
+
+                        <div class="event-info">
+
+                            <span>
+                                🕐
+                                ${esc(eventDate.full)}
+                            </span>
+
+                            <span>
+                                📍
+                                ${esc(event.venue)}
+                            </span>
+
+                        </div>
+
+
+                        ${
+                            me.role === "STUDENT"
+                            ? `
+                                <button
+                                    class="btn btn-primary"
+                                    onclick="registerEvent(${event.id})"
+                                >
+                                    Register for Event
+                                </button>
+                            `
+                            : ""
+                        }
+
+                    </div>
+
+                </article>
+
+            `;
+        }).join("");
 }
 
 
-function renderEvent(event) {
-
-    const clubName =
-        event.club
-            ? event.club.name
-            : "Campus Club";
-
-    return `
-
-        <div class="event-card">
-
-            <div class="event-date">
-
-                <span>
-                    ${getDay(event.eventDate)}
-                </span>
-
-                <small>
-                    ${getMonth(event.eventDate)}
-                </small>
-
-            </div>
-
-            <div class="event-content">
-
-                <span class="event-category">
-                    ${esc(clubName)}
-                </span>
-
-                <h3>
-                    ${esc(event.title)}
-                </h3>
-
-                <p>
-                    ${esc(event.description)}
-                </p>
-
-                <div class="event-meta">
-
-                    <span>
-                        🕐
-                        ${formatDate(event.eventDate)}
-                    </span>
-
-                    <span>
-                        📍
-                        ${esc(event.venue)}
-                    </span>
-
-                </div>
-
-                ${
-                    me.role === "STUDENT"
-                        ? `
-                            <button
-                                class="primary-btn"
-                                onclick="registerEvent(${event.id})">
-                                Register for Event
-                            </button>
-                          `
-                        : ""
-                }
-
-            </div>
-
-        </div>
-
-    `;
-}
-
-
-// ============================================================
-// REGISTER EVENT
-// ============================================================
+/*
+ * =========================
+ * REGISTER EVENT
+ * =========================
+ */
 
 async function registerEvent(id) {
 
@@ -417,193 +514,208 @@ async function registerEvent(id) {
             "POST"
         );
 
+    const message =
+        response.data?.message ||
+        "Unable to register.";
+
+    showToast(
+        message,
+        response.ok ? "success" : "error"
+    );
+
+
     if (response.ok) {
 
-        showToast(
-            response.data.message ||
-            "Registered successfully",
-            "success"
-        );
-
-        await loadMine();
-
-    } else {
-
-        showToast(
-            response.data.message ||
-            "Unable to register",
-            "error"
-        );
+        await loadMyRegistrations();
     }
 }
 
 
-// ============================================================
-// MY REGISTRATIONS
-// ============================================================
+/*
+ * =========================
+ * MY REGISTRATIONS
+ * =========================
+ */
 
-async function loadMine() {
+async function loadMyRegistrations() {
 
-    if (me.role !== "STUDENT") {
-
-        $("mine").innerHTML = `
-            <div class="admin-note">
-                <span>ℹ️</span>
-                <div>
-                    <strong>Admin account</strong>
-                    <p>
-                        Use the Attendance Management section above
-                        to manage student attendance.
-                    </p>
-                </div>
-            </div>
-        `;
-
+    if (!me || me.role !== "STUDENT") {
         return;
     }
+
 
     const response =
         await api("/api/events/mine");
 
+
     if (!response.ok) {
 
         $("mine").innerHTML =
-            `<div class="empty-state">
-                Unable to load registrations.
-             </div>`;
+            errorCard(
+                "Unable to load registrations."
+            );
 
         return;
     }
 
+
     const registrations =
-        response.data || [];
+        Array.isArray(response.data)
+            ? response.data
+            : [];
+
 
     if (!registrations.length) {
 
-        $("mine").innerHTML = `
-            <div class="empty-state">
-
-                <div class="empty-icon">
-                    📝
-                </div>
-
-                <h3>No registrations yet</h3>
-
-                <p>
-                    Register for an upcoming event to see it here.
-                </p>
-
-            </div>
-        `;
+        $("mine").innerHTML =
+            emptyCard(
+                "No event registrations",
+                "Register for an event above and it will appear here."
+            );
 
         return;
     }
 
+
     $("mine").innerHTML =
-        registrations
-            .map(renderMyRegistration)
-            .join("");
+        registrations.map(registration => {
+
+            const event =
+                registration.event || {};
+
+            const status =
+                registration.attendanceStatus ||
+                getAttendanceStatus(registration);
+
+
+            return `
+
+                <div class="activity-card">
+
+                    <div class="activity-icon">
+                        📅
+                    </div>
+
+
+                    <div class="activity-content">
+
+                        <div class="activity-top">
+
+                            <div>
+
+                                <span class="eyebrow">
+                                    EVENT REGISTRATION
+                                </span>
+
+                                <h3>
+                                    ${esc(event.title)}
+                                </h3>
+
+                            </div>
+
+                            ${statusBadge(status)}
+
+                        </div>
+
+
+                        <div class="activity-meta">
+
+                            <span>
+                                📍
+                                ${esc(event.venue || "Venue not specified")}
+                            </span>
+
+                            <span>
+                                🕐
+                                ${esc(formatDate(event.eventDate).full)}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
 }
 
 
-function renderMyRegistration(item) {
+/*
+ * =========================
+ * ATTENDANCE STATUS
+ * =========================
+ */
 
-    const event = item.event;
+function getAttendanceStatus(registration) {
 
-    const present =
-        item.attended === true;
+    if (
+        registration.attendanceMarked === true ||
+        registration.attendanceMarked === "true"
+    ) {
+
+        return registration.attended
+            ? "PRESENT"
+            : "ABSENT";
+    }
+
+    return "NOT_MARKED";
+}
+
+
+function statusBadge(status) {
+
+    if (status === "PRESENT") {
+
+        return `
+            <span class="status-badge status-present">
+                ✓ Present
+            </span>
+        `;
+    }
+
+
+    if (status === "ABSENT") {
+
+        return `
+            <span class="status-badge status-absent">
+                ✕ Absent
+            </span>
+        `;
+    }
+
 
     return `
-
-        <div class="registration-card">
-
-            <div class="registration-icon">
-                📅
-            </div>
-
-            <div class="registration-info">
-
-                <h3>
-                    ${esc(event.title)}
-                </h3>
-
-                <p>
-                    ${esc(event.venue)}
-                    ·
-                    ${formatDate(event.eventDate)}
-                </p>
-
-            </div>
-
-            <span class="
-                status-badge
-                ${present ? "status-present" : "status-absent"}
-            ">
-
-                ${present ? "Present" : "Absent"}
-
-            </span>
-
-        </div>
-
+        <span class="status-badge status-pending">
+            ○ Not Marked
+        </span>
     `;
 }
 
 
-// ============================================================
-// ADMIN EVENTS
-// ============================================================
+/*
+ * =========================
+ * ADMIN EVENTS
+ * =========================
+ */
 
 async function loadAdminEvents() {
 
     const response =
-        await api("/api/events");
+        await api("/api/admin/events");
 
     if (!response.ok) {
         return;
     }
 
-    events = response.data || [];
-
-    populateEventSelect();
+    events = Array.isArray(response.data)
+        ? response.data
+        : [];
 }
 
 
-// ============================================================
-// POPULATE CLUB SELECT
-// ============================================================
-
-function populateClubSelect() {
-
-    const select =
-        $("eventClub");
-
-    if (!select) {
-        return;
-    }
-
-    select.innerHTML = `
-        <option value="">
-            Select club
-        </option>
-    `;
-
-    clubs.forEach(club => {
-
-        select.innerHTML += `
-            <option value="${club.id}">
-                ${esc(club.name)}
-            </option>
-        `;
-    });
-}
-
-
-// ============================================================
-// POPULATE ATTENDANCE EVENT SELECT
-// ============================================================
-
-function populateEventSelect() {
+function populateAttendanceEvents() {
 
     const select =
         $("attendanceEvent");
@@ -612,26 +724,31 @@ function populateEventSelect() {
         return;
     }
 
-    select.innerHTML = `
-        <option value="">
-            Select Event
-        </option>
-    `;
 
-    events.forEach(event => {
-
-        select.innerHTML += `
+    select.innerHTML =
+        `<option value="">
+            Select an event
+        </option>` +
+        events.map(event => `
             <option value="${event.id}">
                 ${esc(event.title)}
             </option>
-        `;
-    });
+        `).join("");
+
+
+    if (events.length) {
+
+        select.value =
+            String(events[0].id);
+    }
 }
 
 
-// ============================================================
-// CLUB MEMBERS
-// ============================================================
+/*
+ * =========================
+ * CLUB MEMBERS TABLE
+ * =========================
+ */
 
 async function loadClubMembers() {
 
@@ -640,19 +757,19 @@ async function loadClubMembers() {
 
     if (!response.ok) {
 
-        $("clubMembersTable").innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-cell">
-                    Unable to load club members.
-                </td>
-            </tr>
-        `;
+        $("clubMembersTable").innerHTML =
+            tableMessage(
+                5,
+                "Unable to load club members."
+            );
 
         return;
     }
 
     clubMembers =
-        response.data || [];
+        Array.isArray(response.data)
+            ? response.data
+            : [];
 
     renderClubMembers();
 }
@@ -661,24 +778,23 @@ async function loadClubMembers() {
 function renderClubMembers() {
 
     const search =
-        ($("clubSearch").value || "")
+        ($("clubSearch")?.value || "")
             .toLowerCase()
             .trim();
 
+
     const filtered =
-        clubMembers.filter(item => {
+        clubMembers.filter(member => {
 
             const text = [
 
-                item.user?.name,
-                item.user?.email,
-                item.user?.studentId,
-                item.user?.department,
-                item.club?.name
+                member.studentName,
+                member.email,
+                member.collegeStudentId,
+                member.department,
+                member.clubName
 
-            ]
-                .join(" ")
-                .toLowerCase();
+            ].join(" ").toLowerCase();
 
             return text.includes(search);
         });
@@ -686,69 +802,75 @@ function renderClubMembers() {
 
     if (!filtered.length) {
 
-        $("clubMembersTable").innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-cell">
-                    No club memberships found.
-                </td>
-            </tr>
-        `;
+        $("clubMembersTable").innerHTML =
+            tableMessage(
+                5,
+                search
+                    ? "No matching club members."
+                    : "No students have joined a club yet."
+            );
 
         return;
     }
 
 
     $("clubMembersTable").innerHTML =
-        filtered.map(item => `
+        filtered.map(member => `
 
             <tr>
 
                 <td>
-                    <div class="table-user">
 
-                        <div class="table-avatar">
-                            ${firstLetter(item.user?.name)}
+                    <div class="table-person">
+
+                        <div class="mini-avatar">
+                            ${initials(member.studentName)}
                         </div>
 
                         <div>
+
                             <strong>
-                                ${esc(item.user?.name)}
+                                ${esc(member.studentName)}
                             </strong>
 
                             <small>
-                                ${esc(item.user?.role || "STUDENT")}
+                                ${esc(member.email)}
                             </small>
+
                         </div>
 
                     </div>
+
                 </td>
 
-                <td>
-                    ${esc(item.user?.email)}
-                </td>
-
-                <td>
-                    ${esc(
-                        item.user?.studentId ||
-                        "-"
-                    )}
-                </td>
 
                 <td>
                     ${esc(
-                        item.user?.department ||
-                        "-"
+                        member.collegeStudentId ||
+                        "—"
                     )}
                 </td>
 
+
                 <td>
-                    <span class="table-tag">
-                        ${esc(item.club?.name)}
+                    ${esc(
+                        member.department ||
+                        "—"
+                    )}
+                </td>
+
+
+                <td>
+
+                    <span class="club-pill">
+                        ${esc(member.clubName)}
                     </span>
+
                 </td>
 
+
                 <td>
-                    ${formatSimpleDate(item.joinedAt)}
+                    ${esc(member.joinedAt || "—")}
                 </td>
 
             </tr>
@@ -757,9 +879,11 @@ function renderClubMembers() {
 }
 
 
-// ============================================================
-// EVENT REGISTRATIONS
-// ============================================================
+/*
+ * =========================
+ * EVENT REGISTRATION TABLE
+ * =========================
+ */
 
 async function loadEventRegistrations() {
 
@@ -768,19 +892,19 @@ async function loadEventRegistrations() {
 
     if (!response.ok) {
 
-        $("eventRegistrationsTable").innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-cell">
-                    Unable to load registrations.
-                </td>
-            </tr>
-        `;
+        $("eventRegistrationsTable").innerHTML =
+            tableMessage(
+                6,
+                "Unable to load event registrations."
+            );
 
         return;
     }
 
     eventRegistrations =
-        response.data || [];
+        Array.isArray(response.data)
+            ? response.data
+            : [];
 
     renderEventRegistrations();
 }
@@ -789,25 +913,24 @@ async function loadEventRegistrations() {
 function renderEventRegistrations() {
 
     const search =
-        ($("registrationSearch").value || "")
+        ($("registrationSearch")?.value || "")
             .toLowerCase()
             .trim();
 
+
     const filtered =
-        eventRegistrations.filter(item => {
+        eventRegistrations.filter(reg => {
 
             const text = [
 
-                item.user?.name,
-                item.user?.email,
-                item.user?.studentId,
-                item.user?.department,
-                item.event?.title,
-                item.club?.name
+                reg.studentName,
+                reg.email,
+                reg.collegeStudentId,
+                reg.department,
+                reg.eventTitle,
+                reg.clubName
 
-            ]
-                .join(" ")
-                .toLowerCase();
+            ].join(" ").toLowerCase();
 
             return text.includes(search);
         });
@@ -815,94 +938,87 @@ function renderEventRegistrations() {
 
     if (!filtered.length) {
 
-        $("eventRegistrationsTable").innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-cell">
-                    No event registrations found.
-                </td>
-            </tr>
-        `;
+        $("eventRegistrationsTable").innerHTML =
+            tableMessage(
+                6,
+                search
+                    ? "No matching registrations."
+                    : "No students have registered for events yet."
+            );
 
         return;
     }
 
 
     $("eventRegistrationsTable").innerHTML =
-        filtered.map(item => `
+        filtered.map(reg => `
 
             <tr>
 
                 <td>
 
-                    <div class="table-user">
+                    <div class="table-person">
 
-                        <div class="table-avatar">
-                            ${firstLetter(item.user?.name)}
+                        <div class="mini-avatar">
+                            ${initials(reg.studentName)}
                         </div>
 
                         <div>
+
                             <strong>
-                                ${esc(item.user?.name)}
+                                ${esc(reg.studentName)}
                             </strong>
 
                             <small>
-                                ${esc(
-                                    item.user?.department ||
-                                    "Student"
-                                )}
+                                ${esc(reg.email)}
                             </small>
+
                         </div>
 
                     </div>
 
                 </td>
 
-                <td>
-                    ${esc(item.user?.email)}
-                </td>
 
                 <td>
                     ${esc(
-                        item.user?.studentId ||
-                        "-"
+                        reg.collegeStudentId ||
+                        "—"
                     )}
                 </td>
+
+
+                <td>
+                    ${esc(
+                        reg.department ||
+                        "—"
+                    )}
+                </td>
+
 
                 <td>
 
                     <strong>
-                        ${esc(item.event?.title)}
+                        ${esc(reg.eventTitle)}
                     </strong>
 
                     <small class="table-sub">
-                        ${formatDate(item.event?.eventDate)}
+                        ${esc(formatDate(reg.eventDate).full)}
                     </small>
 
                 </td>
 
+
                 <td>
-                    ${esc(item.club?.name || "-")}
+                    ${esc(reg.clubName || "—")}
                 </td>
 
+
                 <td>
-
-                    <span class="
-                        status-badge
-                        ${
-                            item.attended
-                                ? "status-present"
-                                : "status-absent"
-                        }
-                    ">
-
-                        ${
-                            item.attended
-                                ? "Present"
-                                : "Absent"
-                        }
-
-                    </span>
-
+                    ${statusBadge(
+                        reg.attendanceStatus ||
+                        "NOT_MARKED"
+                    )}
                 </td>
 
             </tr>
@@ -911,203 +1027,172 @@ function renderEventRegistrations() {
 }
 
 
-// ============================================================
-// ATTENDANCE
-// ============================================================
+/*
+ * =========================
+ * ATTENDANCE
+ * =========================
+ */
 
 async function loadAttendance() {
 
-    const eventId =
-        $("attendanceEvent").value;
+    const select =
+        $("attendanceEvent");
 
-    if (!eventId) {
+    if (!select || !select.value) {
 
-        $("attendanceTable").innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-cell">
-                    Select an event to manage attendance.
-                </td>
-            </tr>
-        `;
+        $("attendanceSummary").innerHTML =
+            "";
 
-        updateAttendanceSummary([]);
+        $("attendanceTable").innerHTML =
+            tableMessage(
+                6,
+                "Select an event to manage attendance."
+            );
 
         return;
     }
+
 
     const response =
         await api(
-            `/api/admin/events/${eventId}/attendance`
+            `/api/admin/events/${select.value}/attendance`
         );
+
 
     if (!response.ok) {
 
-        $("attendanceTable").innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-cell">
-                    Unable to load attendance.
-                </td>
-            </tr>
-        `;
+        $("attendanceTable").innerHTML =
+            tableMessage(
+                6,
+                "Unable to load attendance."
+            );
 
         return;
     }
 
-    const records =
-        response.data || [];
 
-    updateAttendanceSummary(records);
-
-    renderAttendance(records);
-}
+    const data =
+        response.data;
 
 
-function updateAttendanceSummary(records) {
+    $("attendanceSummary").innerHTML = `
 
-    const total =
-        records.length;
+        ${attendanceSummaryCard(
+            "Total Registered",
+            data.total,
+            "total"
+        )}
 
-    const present =
-        records.filter(
-            item => item.attended === true
-        ).length;
+        ${attendanceSummaryCard(
+            "Present",
+            data.present,
+            "present"
+        )}
 
-    const absent =
-        total - present;
+        ${attendanceSummaryCard(
+            "Absent",
+            data.absent,
+            "absent"
+        )}
 
-    $("attendanceTotal").textContent =
-        total;
+        ${attendanceSummaryCard(
+            "Not Marked",
+            data.notMarked,
+            "pending"
+        )}
 
-    $("attendancePresent").textContent =
-        present;
-
-    $("attendanceAbsent").textContent =
-        absent;
-}
+    `;
 
 
-function renderAttendance(records) {
+    const students =
+        Array.isArray(data.students)
+            ? data.students
+            : [];
 
-    if (!records.length) {
 
-        $("attendanceTable").innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-cell">
-                    No students registered for this event.
-                </td>
-            </tr>
-        `;
+    if (!students.length) {
+
+        $("attendanceTable").innerHTML =
+            tableMessage(
+                6,
+                "No students are registered for this event yet."
+            );
 
         return;
     }
 
 
     $("attendanceTable").innerHTML =
-        records.map(item => `
+        students.map(student => `
 
             <tr>
 
                 <td>
 
-                    <div class="table-user">
+                    <div class="table-person">
 
-                        <div class="table-avatar">
-                            ${firstLetter(item.user?.name)}
+                        <div class="mini-avatar">
+                            ${initials(student.studentName)}
                         </div>
 
                         <div>
+
                             <strong>
-                                ${esc(item.user?.name)}
+                                ${esc(student.studentName)}
                             </strong>
+
                         </div>
 
                     </div>
 
                 </td>
 
-                <td>
-                    ${esc(item.user?.email)}
-                </td>
 
                 <td>
-                    ${esc(
-                        item.user?.studentId ||
-                        "-"
+                    ${esc(student.email)}
+                </td>
+
+
+                <td>
+                    ${esc(student.studentId || "—")}
+                </td>
+
+
+                <td>
+                    ${esc(student.department || "—")}
+                </td>
+
+
+                <td>
+                    ${statusBadge(
+                        student.attendanceStatus
                     )}
                 </td>
 
-                <td>
-                    ${esc(
-                        item.user?.department ||
-                        "-"
-                    )}
-                </td>
-
-                <td>
-
-                    <span class="
-                        status-badge
-                        ${
-                            item.attended
-                                ? "status-present"
-                                : "status-absent"
-                        }
-                    ">
-
-                        ${
-                            item.attended
-                                ? "Present"
-                                : "Absent"
-                        }
-
-                    </span>
-
-                </td>
 
                 <td>
 
                     <div class="attendance-actions">
 
                         <button
-                            class="
-                                attendance-btn
-                                present-btn
-                                ${
-                                    item.attended
-                                        ? "active"
-                                        : ""
-                                }
-                            "
-                            onclick="
-                                markAttendance(
-                                    ${item.registrationId},
-                                    true
-                                )
-                            ">
-
+                            class="attendance-btn present"
+                            onclick="markAttendance(
+                                ${student.registrationId},
+                                true
+                            )"
+                        >
                             ✓ Present
-
                         </button>
 
+
                         <button
-                            class="
-                                attendance-btn
-                                absent-btn
-                                ${
-                                    !item.attended
-                                        ? "active"
-                                        : ""
-                                }
-                            "
-                            onclick="
-                                markAttendance(
-                                    ${item.registrationId},
-                                    false
-                                )
-                            ">
-
+                            class="attendance-btn absent"
+                            onclick="markAttendance(
+                                ${student.registrationId},
+                                false
+                            )"
+                        >
                             ✕ Absent
-
                         </button>
 
                     </div>
@@ -1120,9 +1205,11 @@ function renderAttendance(records) {
 }
 
 
-// ============================================================
-// MARK ATTENDANCE
-// ============================================================
+/*
+ * =========================
+ * MARK ATTENDANCE
+ * =========================
+ */
 
 async function markAttendance(
     registrationId,
@@ -1131,37 +1218,41 @@ async function markAttendance(
 
     const response =
         await api(
-            `/api/events/registrations/${registrationId}/attendance?attended=${attended}`,
-            "PUT"
+            `/api/admin/attendance/${registrationId}`,
+            "PUT",
+            {
+                attended: attended
+            }
         );
 
-    if (!response.ok) {
 
-        showToast(
-            response.data.message ||
-            "Unable to update attendance",
-            "error"
-        );
+    const message =
+        response.data?.message ||
+        "Unable to update attendance.";
 
-        return;
-    }
 
     showToast(
-        attended
-            ? "Student marked Present"
-            : "Student marked Absent",
-        "success"
+        message,
+        response.ok ? "success" : "error"
     );
 
-    await loadAttendance();
-    await loadEventRegistrations();
-    await loadStats();
+
+    if (response.ok) {
+
+        await loadAttendance();
+
+        await loadStats();
+
+        await loadEventRegistrations();
+    }
 }
 
 
-// ============================================================
-// CREATE CLUB
-// ============================================================
+/*
+ * =========================
+ * CREATE CLUB
+ * =========================
+ */
 
 $("clubForm")?.addEventListener(
     "submit",
@@ -1169,58 +1260,55 @@ $("clubForm")?.addEventListener(
 
         event.preventDefault();
 
-        const payload = {
-
-            name: $("clubName").value.trim(),
-
-            category:
-                $("clubCategory").value.trim(),
-
-            coordinator:
-                $("clubCoordinator").value.trim(),
-
-            description:
-                $("clubDescription").value.trim()
-        };
-
 
         const response =
             await api(
                 "/api/clubs",
                 "POST",
-                payload
+                {
+                    name: $("clubName").value.trim(),
+
+                    category:
+                        $("clubCategory").value.trim(),
+
+                    coordinator:
+                        $("clubCoordinator").value.trim(),
+
+                    description:
+                        $("clubDescription").value.trim()
+                }
             );
-
-
-        if (!response.ok) {
-
-            showToast(
-                response.data.message ||
-                "Unable to create club",
-                "error"
-            );
-
-            return;
-        }
 
 
         showToast(
-            "Club created successfully",
-            "success"
+            response.data?.message ||
+            (
+                response.ok
+                    ? "Club created successfully."
+                    : "Unable to create club."
+            ),
+            response.ok ? "success" : "error"
         );
 
-        event.target.reset();
 
-        await loadClubs();
-        await loadStats();
-        await loadClubMembers();
+        if (response.ok) {
+
+            this.reset();
+
+            await loadClubs();
+
+            await loadStats();
+        }
+
     }
 );
 
 
-// ============================================================
-// CREATE EVENT
-// ============================================================
+/*
+ * =========================
+ * CREATE EVENT
+ * =========================
+ */
 
 $("eventForm")?.addEventListener(
     "submit",
@@ -1228,72 +1316,85 @@ $("eventForm")?.addEventListener(
 
         event.preventDefault();
 
-        const payload = {
 
-            title:
-                $("eventTitle").value.trim(),
-
-            description:
-                $("eventDescription").value.trim(),
-
-            eventDate:
-                $("eventDate").value,
-
-            venue:
-                $("eventVenue").value.trim(),
-
-            clubId:
-                Number($("eventClub").value)
-        };
+        const clubId =
+            Number($("eventClub").value);
 
 
         const response =
             await api(
                 "/api/events",
                 "POST",
-                payload
+                {
+                    title:
+                        $("eventTitle").value.trim(),
+
+                    description:
+                        $("eventDescription").value.trim(),
+
+                    eventDate:
+                        $("eventDate").value,
+
+                    venue:
+                        $("eventVenue").value.trim(),
+
+                    clubId:
+                        clubId
+                }
             );
-
-
-        if (!response.ok) {
-
-            showToast(
-                response.data.message ||
-                "Unable to create event",
-                "error"
-            );
-
-            return;
-        }
 
 
         showToast(
-            "Event created successfully",
-            "success"
+            response.data?.message ||
+            (
+                response.ok
+                    ? "Event created successfully."
+                    : "Unable to create event."
+            ),
+            response.ok ? "success" : "error"
         );
 
-        event.target.reset();
 
-        await loadEvents();
-        await loadAdminEvents();
-        await loadStats();
+        if (response.ok) {
+
+            this.reset();
+
+            await loadAdminEvents();
+
+            populateAttendanceEvents();
+
+            await loadEvents();
+
+            await loadStats();
+        }
+
     }
 );
 
 
-// ============================================================
-// SEARCH
-// ============================================================
+/*
+ * =========================
+ * SEARCH
+ * =========================
+ */
 
 $("clubSearch")?.addEventListener(
     "input",
     renderClubMembers
 );
 
+
 $("registrationSearch")?.addEventListener(
     "input",
     renderEventRegistrations
 );
+
+
+/*
+ * =========================
+ * ATTENDANCE EVENT SELECT
+ * =========================
+ */
 
 $("attendanceEvent")?.addEventListener(
     "change",
@@ -1301,32 +1402,35 @@ $("attendanceEvent")?.addEventListener(
 );
 
 
-// ============================================================
-// REFRESH ADMIN
-// ============================================================
+/*
+ * =========================
+ * REFRESH ADMIN
+ * =========================
+ */
 
 $("refreshAdmin")?.addEventListener(
     "click",
     async function () {
 
-        await loadStats();
-        await loadClubs();
-        await loadEvents();
-        await loadClubMembers();
-        await loadEventRegistrations();
-        await loadAttendance();
+        this.disabled = true;
+
+        await loadAdminDashboard();
+
+        this.disabled = false;
 
         showToast(
-            "Dashboard refreshed",
+            "Dashboard refreshed.",
             "success"
         );
     }
 );
 
 
-// ============================================================
-// LOGOUT
-// ============================================================
+/*
+ * =========================
+ * LOGOUT
+ * =========================
+ */
 
 $("logout")?.addEventListener(
     "click",
@@ -1342,157 +1446,236 @@ $("logout")?.addEventListener(
 );
 
 
-// ============================================================
-// HELPERS
-// ============================================================
+/*
+ * =========================
+ * HELPERS
+ * =========================
+ */
 
-function firstLetter(value) {
+function formatDate(value) {
 
-    return String(value || "U")
-        .charAt(0)
+    if (!value) {
+
+        return {
+            day: "--",
+            month: "---",
+            full: "Date not specified"
+        };
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (Number.isNaN(date.getTime())) {
+
+        return {
+            day: "--",
+            month: "---",
+            full: String(value)
+        };
+    }
+
+
+    return {
+
+        day:
+            String(
+                date.getDate()
+            ).padStart(2, "0"),
+
+        month:
+            date.toLocaleString(
+                "en-US",
+                {
+                    month: "short"
+                }
+            ).toUpperCase(),
+
+        full:
+            date.toLocaleString(
+                "en-IN",
+                {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            )
+    };
+}
+
+
+function initials(name) {
+
+    if (!name) {
+        return "U";
+    }
+
+    return name
+        .split(" ")
+        .slice(0, 2)
+        .map(word =>
+            word.charAt(0)
+        )
+        .join("")
         .toUpperCase();
 }
 
 
 function esc(value) {
 
-    return String(value ?? "")
-        .replace(/[&<>'"]/g, character => ({
-
+    return String(
+        value ?? ""
+    ).replace(
+        /[&<>'"]/g,
+        character => ({
             "&": "&amp;",
             "<": "&lt;",
             ">": "&gt;",
             "'": "&#39;",
             '"': "&quot;"
-
-        }[character]));
-}
-
-
-function formatDate(value) {
-
-    if (!value) {
-        return "-";
-    }
-
-    const date =
-        new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return String(value);
-    }
-
-    return date.toLocaleString(
-        undefined,
-        {
-            dateStyle: "medium",
-            timeStyle: "short"
-        }
+        })[character]
     );
 }
 
 
-function formatSimpleDate(value) {
+function tableMessage(
+    columns,
+    message
+) {
 
-    if (!value) {
-        return "-";
-    }
-
-    const date =
-        new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return String(value);
-    }
-
-    return date.toLocaleDateString();
-}
-
-
-function getDay(value) {
-
-    if (!value) {
-        return "--";
-    }
-
-    const date =
-        new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return "--";
-    }
-
-    return String(
-        date.getDate()
-    ).padStart(2, "0");
-}
-
-
-function getMonth(value) {
-
-    if (!value) {
-        return "---";
-    }
-
-    const date =
-        new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return "---";
-    }
-
-    return date
-        .toLocaleString(
-            undefined,
-            { month: "short" }
-        )
-        .toUpperCase();
-}
-
-
-function showError(element, message) {
-
-    element.innerHTML = `
-        <div class="empty-state">
-            ${esc(message)}
-        </div>
+    return `
+        <tr>
+            <td
+                colspan="${columns}"
+                class="table-empty"
+            >
+                ${esc(message)}
+            </td>
+        </tr>
     `;
 }
 
 
-function showToast(message, type = "success") {
+function emptyCard(
+    title,
+    description
+) {
 
-    const toast =
-        document.createElement("div");
+    return `
 
-    toast.className =
-        `toast ${type}`;
+        <div class="empty-card">
+
+            <div class="empty-icon">
+                ✦
+            </div>
+
+            <h3>
+                ${esc(title)}
+            </h3>
+
+            <p>
+                ${esc(description)}
+            </p>
+
+        </div>
+
+    `;
+}
+
+
+function errorCard(message) {
+
+    return `
+
+        <div class="empty-card">
+
+            <div class="empty-icon">
+                !
+            </div>
+
+            <h3>
+                Something went wrong
+            </h3>
+
+            <p>
+                ${esc(message)}
+            </p>
+
+        </div>
+
+    `;
+}
+
+
+function attendanceSummaryCard(
+    title,
+    value,
+    type
+) {
+
+    return `
+
+        <div class="attendance-stat ${type}">
+
+            <span>
+                ${esc(title)}
+            </span>
+
+            <strong>
+                ${Number(value || 0)}
+            </strong>
+
+        </div>
+
+    `;
+}
+
+
+function showToast(
+    message,
+    type = "success"
+) {
+
+    let toast =
+        document.getElementById(
+            "toast"
+        );
+
+
+    if (!toast) {
+
+        toast =
+            document.createElement(
+                "div"
+            );
+
+        toast.id = "toast";
+
+        document.body.appendChild(
+            toast
+        );
+    }
+
 
     toast.textContent =
         message;
 
-    document.body.appendChild(toast);
+    toast.className =
+        `toast ${type} show`;
+
 
     setTimeout(() => {
 
-        toast.classList.add("show");
+        toast.classList.remove(
+            "show"
+        );
 
-    }, 10);
-
-    setTimeout(() => {
-
-        toast.classList.remove("show");
-
-        setTimeout(() => {
-            toast.remove();
-        }, 300);
-
-    }, 2800);
+    }, 3000);
 }
 
 
-// ============================================================
-// START
-// ============================================================
-
-load();
+loadDashboard();
