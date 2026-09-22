@@ -1,20 +1,26 @@
-
 package com.campusclub.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    private final SessionAuthenticationFilter sessionAuthenticationFilter;
+
+    public SecurityConfig(
+            SessionAuthenticationFilter sessionAuthenticationFilter
+    ) {
+        this.sessionAuthenticationFilter =
+                sessionAuthenticationFilter;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -31,41 +37,32 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public pages
                         .requestMatchers(
                                 "/",
                                 "/index.html",
                                 "/login.html",
                                 "/register.html",
-                                "/dashboard.html",
-
-                                // Static resources
                                 "/css/**",
                                 "/js/**",
-
-                                // Authentication APIs
                                 "/api/auth/**",
-
-                                // Error page
                                 "/error",
-
-                                // H2 local development
                                 "/h2-console/**"
-                        )
-                        .permitAll()
+                        ).permitAll()
 
-                        // Everything else requires login
-                        .anyRequest()
-                        .authenticated()
+                        .anyRequest().authenticated()
                 )
 
                 .headers(headers ->
                         headers.frameOptions(
                                 frame -> frame.sameOrigin()
                         )
+                )
+
+                .addFilterBefore(
+                        sessionAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 );
 
         return http.build();
     }
 }
-

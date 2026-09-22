@@ -1,1 +1,629 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard</title><link rel="stylesheet" href="/css/style.css"></head><body><header><div class="brand">Campus<span>Club</span></div><nav><span id="userName"></span><button id="logout" class="linkbtn">Logout</button></nav></header><main class="container"><div class="welcome"><div><p class="tag">DASHBOARD</p><h1>Welcome, <span id="welcomeName"></span> 👋</h1><p>Manage your campus club activities from one place.</p></div><div id="roleBadge" class="badge"></div></div><section id="adminPanel" class="hidden"><h2>Admin Overview</h2><div class="stats" id="stats"></div><div class="admin-grid"><div class="panel"><h3>Create Club</h3><form id="clubForm"><input id="clubName" placeholder="Club name" required><input id="clubCategory" placeholder="Category"><input id="clubCoordinator" placeholder="Coordinator"><textarea id="clubDescription" placeholder="Description" required></textarea><button class="btn">Create Club</button></form></div><div class="panel"><h3>Create Event</h3><form id="eventForm"><input id="eventTitle" placeholder="Event title" required><input id="eventDate" placeholder="2026-10-20 10:00" required><input id="eventVenue" placeholder="Venue" required><select id="eventClub"></select><textarea id="eventDescription" placeholder="Description" required></textarea><button class="btn">Create Event</button></form></div></div></section><section><div class="section-head"><h2>Clubs</h2><span id="clubMsg"></span></div><div id="clubs" class="grid"></div></section><section><div class="section-head"><h2>Upcoming Events</h2></div><div id="events" class="grid"></div></section><section><h2>My Event Registrations</h2><div id="mine"></div></section></main><script src="/js/app.js"></script><script src="/js/dashboard.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Campus Club Dashboard</title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+</head>
+
+<body>
+
+<!-- =====================================================
+     TOP NAVIGATION
+===================================================== -->
+
+<header class="topbar">
+
+    <div class="brand">
+        Campus<span>Club</span>
+    </div>
+
+    <div class="topbar-right">
+
+        <div class="profile-mini">
+
+            <div class="avatar">
+                <span id="avatarLetter">U</span>
+            </div>
+
+            <div class="profile-text">
+
+                <strong id="userName">
+                    User
+                </strong>
+
+                <small id="roleBadge">
+                    STUDENT
+                </small>
+
+            </div>
+
+        </div>
+
+        <button
+            id="logout"
+            class="logout-btn"
+        >
+            Logout
+        </button>
+
+    </div>
+
+</header>
+
+
+<main class="dashboard-container">
+
+<!-- =====================================================
+     WELCOME
+===================================================== -->
+
+<section class="welcome-banner">
+
+    <div>
+
+        <span class="eyebrow">
+            CAMPUS CLUB MANAGEMENT
+        </span>
+
+        <h1>
+            Welcome,
+            <span id="welcomeName">
+                Student
+            </span>
+            👋
+        </h1>
+
+        <p>
+            Manage clubs, events and campus activities
+            from one beautiful dashboard.
+        </p>
+
+    </div>
+
+    <div class="welcome-icon">
+        🎓
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     ADMIN DASHBOARD
+===================================================== -->
+
+<section
+    id="adminPanel"
+    class="hidden"
+>
+
+    <!-- ADMIN HEADER -->
+
+    <div class="section-title">
+
+        <div>
+            <span class="eyebrow">
+                ADMINISTRATION
+            </span>
+
+            <h2>
+                Admin Dashboard
+            </h2>
+
+            <p>
+                Manage clubs, events, registrations
+                and attendance.
+            </p>
+        </div>
+
+    </div>
+
+
+    <!-- STATS -->
+
+    <div
+        id="stats"
+        class="stats-grid"
+    ></div>
+
+
+    <!-- ADMIN TABS -->
+
+    <div class="admin-tabs">
+
+        <button
+            class="admin-tab active"
+            data-tab="registrationsTab"
+        >
+            Event Registrations
+        </button>
+
+        <button
+            class="admin-tab"
+            data-tab="membersTab"
+        >
+            Club Members
+        </button>
+
+        <button
+            class="admin-tab"
+            data-tab="studentsTab"
+        >
+            Students
+        </button>
+
+        <button
+            class="admin-tab"
+            data-tab="createTab"
+        >
+            Create
+        </button>
+
+    </div>
+
+
+    <!-- =================================================
+         EVENT REGISTRATIONS
+    ================================================== -->
+
+    <div
+        id="registrationsTab"
+        class="admin-tab-content active"
+    >
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Event Registrations
+                    </h3>
+
+                    <p>
+                        View registered students
+                        and mark attendance.
+                    </p>
+
+                </div>
+
+                <select id="eventFilter">
+
+                    <option value="all">
+                        All Events
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div
+                id="eventRegistrations"
+                class="table-wrapper"
+            ></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         CLUB MEMBERS
+    ================================================== -->
+
+    <div
+        id="membersTab"
+        class="admin-tab-content"
+    >
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Club Members
+                    </h3>
+
+                    <p>
+                        Students who joined campus clubs.
+                    </p>
+
+                </div>
+
+                <select id="clubFilter">
+
+                    <option value="all">
+                        All Clubs
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div
+                id="clubMembers"
+                class="table-wrapper"
+            ></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         STUDENTS
+    ================================================== -->
+
+    <div
+        id="studentsTab"
+        class="admin-tab-content"
+    >
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Registered Students
+                    </h3>
+
+                    <p>
+                        All students registered
+                        in Campus Club.
+                    </p>
+
+                </div>
+
+                <input
+                    id="studentSearch"
+                    class="search-input"
+                    placeholder="Search student..."
+                >
+
+            </div>
+
+            <div
+                id="studentsTable"
+                class="table-wrapper"
+            ></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         CREATE CLUB / EVENT
+    ================================================== -->
+
+    <div
+        id="createTab"
+        class="admin-tab-content"
+    >
+
+        <div class="create-grid">
+
+            <div class="panel">
+
+                <div class="panel-icon">
+                    🏫
+                </div>
+
+                <h3>
+                    Create Club
+                </h3>
+
+                <p class="panel-description">
+                    Add a new student club.
+                </p>
+
+                <form id="clubForm">
+
+                    <input
+                        id="clubName"
+                        placeholder="Club name"
+                        required
+                    >
+
+                    <input
+                        id="clubCategory"
+                        placeholder="Category"
+                    >
+
+                    <input
+                        id="clubCoordinator"
+                        placeholder="Coordinator"
+                    >
+
+                    <textarea
+                        id="clubDescription"
+                        placeholder="Club description"
+                        required
+                    ></textarea>
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                    >
+                        Create Club
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <div class="panel">
+
+                <div class="panel-icon">
+                    📅
+                </div>
+
+                <h3>
+                    Create Event
+                </h3>
+
+                <p class="panel-description">
+                    Add an event for students.
+                </p>
+
+                <form id="eventForm">
+
+                    <input
+                        id="eventTitle"
+                        placeholder="Event title"
+                        required
+                    >
+
+                    <input
+                        id="eventDate"
+                        placeholder="2026-10-20 10:00"
+                        required
+                    >
+
+                    <input
+                        id="eventVenue"
+                        placeholder="Venue"
+                        required
+                    >
+
+                    <select
+                        id="eventClub"
+                        required
+                    ></select>
+
+                    <textarea
+                        id="eventDescription"
+                        placeholder="Event description"
+                        required
+                    ></textarea>
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                    >
+                        Create Event
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     STUDENT DASHBOARD
+===================================================== -->
+
+<section id="studentPanel">
+
+    <div class="student-summary">
+
+        <div class="summary-card">
+
+            <div class="summary-icon blue">
+                🏫
+            </div>
+
+            <div>
+
+                <span>
+                    My Clubs
+                </span>
+
+                <strong id="myClubCount">
+                    0
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-icon purple">
+                📅
+            </div>
+
+            <div>
+
+                <span>
+                    Events
+                </span>
+
+                <strong id="eventCount">
+                    0
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-icon green">
+                🎟️
+            </div>
+
+            <div>
+
+                <span>
+                    My Registrations
+                </span>
+
+                <strong id="registrationCount">
+                    0
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         STUDENT CLUBS
+    ================================================== -->
+
+    <section>
+
+        <div class="section-title">
+
+            <div>
+
+                <span class="eyebrow">
+                    DISCOVER
+                </span>
+
+                <h2>
+                    Campus Clubs
+                </h2>
+
+                <p>
+                    Find clubs that match your interests.
+                </p>
+
+            </div>
+
+            <span id="clubMsg"></span>
+
+        </div>
+
+        <div
+            id="clubs"
+            class="modern-grid"
+        ></div>
+
+    </section>
+
+
+    <!-- =================================================
+         STUDENT EVENTS
+    ================================================== -->
+
+    <section>
+
+        <div class="section-title">
+
+            <div>
+
+                <span class="eyebrow">
+                    ACTIVITIES
+                </span>
+
+                <h2>
+                    Upcoming Events
+                </h2>
+
+                <p>
+                    Register for events happening
+                    on campus.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div
+            id="events"
+            class="modern-grid"
+        ></div>
+
+    </section>
+
+
+    <!-- =================================================
+         MY REGISTRATIONS
+    ================================================== -->
+
+    <section>
+
+        <div class="section-title">
+
+            <div>
+
+                <span class="eyebrow">
+                    MY ACTIVITY
+                </span>
+
+                <h2>
+                    My Event Registrations
+                </h2>
+
+                <p>
+                    Track your registration
+                    and attendance.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div
+            id="mine"
+            class="registration-grid"
+        ></div>
+
+    </section>
+
+</section>
+
+</main>
+
+
+<footer>
+    CampusClub © 2026 · Campus Club Management System
+</footer>
+
+
+<script src="/js/app.js"></script>
+<script src="/js/dashboard.js"></script>
+
+</body>
+</html>
