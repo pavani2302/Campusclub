@@ -6,18 +6,23 @@ import com.campusclub.entity.EventRegistration;
 import com.campusclub.entity.Membership;
 import com.campusclub.entity.Role;
 import com.campusclub.entity.User;
-
 import com.campusclub.repository.ClubRepository;
 import com.campusclub.repository.EventRegistrationRepository;
 import com.campusclub.repository.EventRepository;
 import com.campusclub.repository.MembershipRepository;
 import com.campusclub.repository.UserRepository;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -27,41 +32,42 @@ public class AdminController {
     private final UserRepository users;
     private final ClubRepository clubs;
     private final EventRepository events;
-    private final MembershipRepository memberships;
-    private final EventRegistrationRepository registrations;
+    private final MembershipRepository members;
+    private final EventRegistrationRepository regs;
 
     public AdminController(
             UserRepository users,
             ClubRepository clubs,
             EventRepository events,
-            MembershipRepository memberships,
-            EventRegistrationRepository registrations
+            MembershipRepository members,
+            EventRegistrationRepository regs
     ) {
         this.users = users;
         this.clubs = clubs;
         this.events = events;
-        this.memberships = memberships;
-        this.registrations = registrations;
+        this.members = members;
+        this.regs = regs;
     }
 
-    // =========================================================
+
+    // ========================================================
     // ADMIN STATISTICS
-    // =========================================================
+    // ========================================================
 
     @GetMapping("/stats")
     public Map<String, Long> stats() {
 
+        long totalRegistrations =
+                regs.count();
+
         long present =
-                registrations.findAll()
+                regs.findAll()
                         .stream()
                         .filter(EventRegistration::isAttended)
                         .count();
 
         long absent =
-                registrations.findAll()
-                        .stream()
-                        .filter(registration -> !registration.isAttended())
-                        .count();
+                totalRegistrations - present;
 
         return Map.of(
                 "students",
@@ -74,10 +80,10 @@ public class AdminController {
                 events.count(),
 
                 "memberships",
-                memberships.count(),
+                members.count(),
 
                 "registrations",
-                registrations.count(),
+                totalRegistrations,
 
                 "present",
                 present,
@@ -87,9 +93,10 @@ public class AdminController {
         );
     }
 
-    // =========================================================
-    // ALL STUDENTS
-    // =========================================================
+
+    // ========================================================
+    // ALL USERS - SAFE DATA ONLY
+    // ========================================================
 
     @GetMapping("/users")
     public List<Map<String, Object>> users() {
@@ -99,38 +106,16 @@ public class AdminController {
 
         for (User user : users.findAll()) {
 
-            Map<String, Object> item =
-                    new LinkedHashMap<>();
-
-            item.put("id", user.getId());
-            item.put("name", user.getName());
-            item.put("email", user.getEmail());
-            item.put(
-                    "studentId",
-                    user.getStudentId() == null
-                            ? ""
-                            : user.getStudentId()
-            );
-            item.put(
-                    "department",
-                    user.getDepartment() == null
-                            ? ""
-                            : user.getDepartment()
-            );
-            item.put(
-                    "role",
-                    user.getRole().name()
-            );
-
-            result.add(item);
+            result.add(userMap(user));
         }
 
         return result;
     }
 
-    // =========================================================
+
+    // ========================================================
     // CLUB MEMBERS
-    // =========================================================
+    // ========================================================
 
     @GetMapping("/club-members")
     public List<Map<String, Object>> clubMembers() {
@@ -138,8 +123,7 @@ public class AdminController {
         List<Map<String, Object>> result =
                 new ArrayList<>();
 
-        for (Membership membership :
-                memberships.findAll()) {
+        for (Membership membership : members.findAll()) {
 
             User user =
                     membership.getUser();
@@ -156,52 +140,36 @@ public class AdminController {
             );
 
             item.put(
-                    "clubId",
+                    "joinedAt",
+                    membership.getJoinedAt()
+            );
+
+            item.put(
+                    "user",
+                    userMap(user)
+            );
+
+            Map<String, Object> clubData =
+                    new LinkedHashMap<>();
+
+            clubData.put(
+                    "id",
                     club.getId()
             );
 
-            item.put(
-                    "clubName",
+            clubData.put(
+                    "name",
                     club.getName()
             );
 
-            item.put(
+            clubData.put(
                     "category",
                     club.getCategory()
             );
 
             item.put(
-                    "userId",
-                    user.getId()
-            );
-
-            item.put(
-                    "studentName",
-                    user.getName()
-            );
-
-            item.put(
-                    "email",
-                    user.getEmail()
-            );
-
-            item.put(
-                    "studentId",
-                    user.getStudentId() == null
-                            ? ""
-                            : user.getStudentId()
-            );
-
-            item.put(
-                    "department",
-                    user.getDepartment() == null
-                            ? ""
-                            : user.getDepartment()
-            );
-
-            item.put(
-                    "joinedAt",
-                    membership.getJoinedAt()
+                    "club",
+                    clubData
             );
 
             result.add(item);
@@ -210,9 +178,10 @@ public class AdminController {
         return result;
     }
 
-    // =========================================================
-    // ALL EVENT REGISTRATIONS
-    // =========================================================
+
+    // ========================================================
+    // EVENT REGISTRATIONS
+    // ========================================================
 
     @GetMapping("/event-registrations")
     public List<Map<String, Object>> eventRegistrations() {
@@ -221,181 +190,264 @@ public class AdminController {
                 new ArrayList<>();
 
         for (EventRegistration registration :
-                registrations.findAll()) {
+                regs.findAll()) {
 
-            result.add(
-                    registrationMap(registration)
+            Event event =
+                    registration.getEvent();
+
+            User user =
+                    registration.getUser();
+
+            Map<String, Object> item =
+                    new LinkedHashMap<>();
+
+            item.put(
+                    "registrationId",
+                    registration.getId()
             );
+
+            item.put(
+                    "attended",
+                    registration.isAttended()
+            );
+
+            item.put(
+                    "user",
+                    userMap(user)
+            );
+
+
+            Map<String, Object> eventData =
+                    new LinkedHashMap<>();
+
+            eventData.put(
+                    "id",
+                    event.getId()
+            );
+
+            eventData.put(
+                    "title",
+                    event.getTitle()
+            );
+
+            eventData.put(
+                    "eventDate",
+                    event.getEventDate()
+            );
+
+            eventData.put(
+                    "venue",
+                    event.getVenue()
+            );
+
+            item.put(
+                    "event",
+                    eventData
+            );
+
+
+            if (event.getClub() != null) {
+
+                Map<String, Object> clubData =
+                        new LinkedHashMap<>();
+
+                clubData.put(
+                        "id",
+                        event.getClub().getId()
+                );
+
+                clubData.put(
+                        "name",
+                        event.getClub().getName()
+                );
+
+                item.put(
+                        "club",
+                        clubData
+                );
+
+            } else {
+
+                item.put(
+                        "club",
+                        Map.of(
+                                "name",
+                                "Campus"
+                        )
+                );
+            }
+
+
+            result.add(item);
         }
 
         return result;
     }
 
-    // =========================================================
-    // REGISTRATIONS FOR ONE EVENT
-    // =========================================================
 
-    @GetMapping("/events/{eventId}/registrations")
-    public List<Map<String, Object>> eventRegistrations(
+    // ========================================================
+    // EVENT ATTENDANCE
+    // ========================================================
+
+    @GetMapping("/events/{eventId}/attendance")
+    public ResponseEntity<?> attendance(
             @PathVariable Long eventId
     ) {
 
-        List<Map<String, Object>> result =
-                new ArrayList<>();
+        Event event =
+                events.findById(eventId)
+                        .orElse(null);
 
-        for (EventRegistration registration :
-                registrations.findByEventId(eventId)) {
-
-            result.add(
-                    registrationMap(registration)
-            );
-        }
-
-        return result;
-    }
-
-    // =========================================================
-    // MARK ATTENDANCE
-    // =========================================================
-
-    @PutMapping("/attendance/{registrationId}")
-    public ResponseEntity<?> updateAttendance(
-            @PathVariable Long registrationId,
-            @RequestBody Map<String, Object> request
-    ) {
-
-        Optional<EventRegistration> optional =
-                registrations.findById(registrationId);
-
-        if (optional.isEmpty()) {
+        if (event == null) {
 
             return ResponseEntity
-                    .notFound()
-                    .build();
-        }
-
-        Object value =
-                request.get("attended");
-
-        if (!(value instanceof Boolean)) {
-
-            return ResponseEntity
-                    .badRequest()
+                    .status(HttpStatus.NOT_FOUND)
                     .body(
                             Map.of(
                                     "message",
-                                    "attended must be true or false"
+                                    "Event not found"
                             )
                     );
         }
 
-        boolean attended =
-                (Boolean) value;
+
+        List<Map<String, Object>> result =
+                new ArrayList<>();
+
+
+        for (EventRegistration registration :
+                regs.findByEventId(eventId)) {
+
+            Map<String, Object> item =
+                    new LinkedHashMap<>();
+
+            item.put(
+                    "registrationId",
+                    registration.getId()
+            );
+
+            item.put(
+                    "attended",
+                    registration.isAttended()
+            );
+
+            item.put(
+                    "user",
+                    userMap(
+                            registration.getUser()
+                    )
+            );
+
+            result.add(item);
+        }
+
+
+        return ResponseEntity.ok(result);
+    }
+
+
+    // ========================================================
+    // MARK ATTENDANCE
+    // ========================================================
+
+    public record AttendanceRequest(
+            boolean attended
+    ) {
+    }
+
+
+    @PutMapping("/attendance/{registrationId}")
+    public ResponseEntity<?> updateAttendance(
+            @PathVariable Long registrationId,
+            @RequestBody AttendanceRequest request
+    ) {
 
         EventRegistration registration =
-                optional.get();
+                regs.findById(registrationId)
+                        .orElse(null);
 
-        registration.setAttended(attended);
+        if (registration == null) {
 
-        registrations.save(registration);
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(
+                            Map.of(
+                                    "message",
+                                    "Registration not found"
+                            )
+                    );
+        }
+
+
+        registration.setAttended(
+                request.attended()
+        );
+
+        regs.save(registration);
+
 
         return ResponseEntity.ok(
                 Map.of(
                         "message",
-                        attended
-                                ? "Attendance marked Present"
-                                : "Attendance marked Absent",
+                        request.attended()
+                                ? "Student marked Present"
+                                : "Student marked Absent",
+
                         "registrationId",
-                        registration.getId(),
+                        registrationId,
+
                         "attended",
-                        registration.isAttended()
+                        request.attended()
                 )
         );
     }
 
-    // =========================================================
-    // REGISTRATION DTO
-    // =========================================================
 
-    private Map<String, Object> registrationMap(
-            EventRegistration registration
+    // ========================================================
+    // USER SAFE MAP
+    // ========================================================
+
+    private Map<String, Object> userMap(
+            User user
     ) {
 
-        Event event =
-                registration.getEvent();
-
-        User user =
-                registration.getUser();
-
-        Map<String, Object> item =
+        Map<String, Object> data =
                 new LinkedHashMap<>();
 
-        item.put(
-                "registrationId",
-                registration.getId()
-        );
-
-        item.put(
-                "eventId",
-                event.getId()
-        );
-
-        item.put(
-                "eventTitle",
-                event.getTitle()
-        );
-
-        item.put(
-                "eventDate",
-                event.getEventDate()
-        );
-
-        item.put(
-                "venue",
-                event.getVenue()
-        );
-
-        item.put(
-                "clubName",
-                event.getClub() == null
-                        ? ""
-                        : event.getClub().getName()
-        );
-
-        item.put(
-                "userId",
+        data.put(
+                "id",
                 user.getId()
         );
 
-        item.put(
-                "studentName",
+        data.put(
+                "name",
                 user.getName()
         );
 
-        item.put(
+        data.put(
                 "email",
                 user.getEmail()
         );
 
-        item.put(
+        data.put(
                 "studentId",
                 user.getStudentId() == null
                         ? ""
                         : user.getStudentId()
         );
 
-        item.put(
+        data.put(
                 "department",
                 user.getDepartment() == null
                         ? ""
                         : user.getDepartment()
         );
 
-        item.put(
-                "attended",
-                registration.isAttended()
+        data.put(
+                "role",
+                user.getRole().name()
         );
 
-        return item;
+        return data;
     }
 }

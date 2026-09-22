@@ -1,95 +1,203 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
     <meta charset="UTF-8">
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1"
-    >
+        content="width=device-width, initial-scale=1.0">
 
-    <title>Register - Campus Club</title>
+    <title>Create Account | CampusClub</title>
 
     <link
         rel="stylesheet"
-        href="/css/style.css"
-    >
+        href="/css/style.css">
 
 </head>
 
 <body>
 
-<div class="auth">
+<div class="auth-page">
 
-    <div class="auth-card">
 
-        <a class="back" href="/">
-            ← Home
-        </a>
+    <!-- LEFT -->
 
-        <h1>Create account</h1>
+    <div class="auth-brand-panel">
 
-        <p>Join Campus Club</p>
+        <div class="brand">
+            Campus<span>Club</span>
+        </div>
 
-        <form id="registerForm">
+        <div class="eyebrow">
+            JOIN YOUR CAMPUS COMMUNITY
+        </div>
 
-            <input
-                id="name"
-                type="text"
-                placeholder="Full name"
-                required
-            >
-
-            <input
-                id="email"
-                type="email"
-                placeholder="Email"
-                required
-            >
-
-            <input
-                id="studentId"
-                type="text"
-                placeholder="Student ID"
-            >
-
-            <input
-                id="department"
-                type="text"
-                placeholder="Department"
-            >
-
-            <input
-                id="password"
-                type="password"
-                placeholder="Password (minimum 6 characters)"
-                minlength="6"
-                required
-            >
-
-            <button
-                type="submit"
-                class="btn"
-            >
-                Register
-            </button>
-
-        </form>
-
-        <div id="msg"></div>
+        <h1>
+            Build your
+            <span>campus journey.</span>
+        </h1>
 
         <p>
-            Already registered?
-            <a href="/login.html">
-                Login
-            </a>
+            Create your student account and discover clubs, workshops,
+            competitions and other campus activities.
         </p>
+
+        <div class="feature-list">
+
+            <div class="feature-item">
+                <span>✓</span>
+                Join student clubs
+            </div>
+
+            <div class="feature-item">
+                <span>✓</span>
+                Register for events
+            </div>
+
+            <div class="feature-item">
+                <span>✓</span>
+                Track attendance
+            </div>
+
+            <div class="feature-item">
+                <span>✓</span>
+                Manage your campus profile
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- RIGHT -->
+
+    <div class="auth-area">
+
+        <div class="auth-card">
+
+            <div class="brand">
+                Campus<span>Club</span>
+            </div>
+
+            <h2>
+                Create account
+            </h2>
+
+            <p>
+                Join CampusClub as a student.
+            </p>
+
+
+            <form
+                id="registerForm"
+                class="auth-form">
+
+
+                <label>
+                    Full Name
+
+                    <input
+                        id="name"
+                        type="text"
+                        placeholder="Viswanath Reddy"
+                        autocomplete="name"
+                        required>
+
+                </label>
+
+
+                <label>
+                    Email
+
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="student@example.com"
+                        autocomplete="email"
+                        required>
+
+                </label>
+
+
+                <label>
+                    Student ID
+
+                    <input
+                        id="studentId"
+                        type="text"
+                        placeholder="BTECH2026001">
+
+                </label>
+
+
+                <label>
+                    Department
+
+                    <input
+                        id="department"
+                        type="text"
+                        placeholder="Computer Science">
+
+                </label>
+
+
+                <label>
+                    Password
+
+                    <input
+                        id="password"
+                        type="password"
+                        placeholder="Minimum 6 characters"
+                        minlength="6"
+                        autocomplete="new-password"
+                        required>
+
+                </label>
+
+
+                <button
+                    class="primary-btn"
+                    type="submit">
+
+                    Create Student Account →
+
+                </button>
+
+            </form>
+
+
+            <div
+                id="msg"
+                class="auth-message">
+            </div>
+
+
+            <div class="auth-footer">
+
+                Already have an account?
+
+                <a href="/login.html">
+                    Login
+                </a>
+
+                <br><br>
+
+                <a
+                    class="back-link"
+                    href="/">
+                    ← Back to Home
+                </a>
+
+            </div>
+
+        </div>
 
     </div>
 
 </div>
+
 
 <script src="/js/app.js"></script>
 
@@ -98,23 +206,9 @@
 const registerForm =
     document.getElementById("registerForm");
 
-const nameInput =
-    document.getElementById("name");
-
-const emailInput =
-    document.getElementById("email");
-
-const studentIdInput =
-    document.getElementById("studentId");
-
-const departmentInput =
-    document.getElementById("department");
-
-const passwordInput =
-    document.getElementById("password");
-
-const message =
+const msg =
     document.getElementById("msg");
+
 
 registerForm.addEventListener(
     "submit",
@@ -122,47 +216,79 @@ registerForm.addEventListener(
 
         event.preventDefault();
 
-        message.textContent = "";
-        message.className = "";
+        msg.textContent =
+            "Creating account...";
 
-        const result = await api(
-            "/api/auth/register",
-            "POST",
-            {
-                name: nameInput.value.trim(),
-                email: emailInput.value.trim(),
-                password: passwordInput.value,
-                studentId: studentIdInput.value.trim(),
-                department: departmentInput.value.trim()
-            }
-        );
+        msg.className =
+            "auth-message";
 
-        if (result.ok) {
 
-            message.textContent =
-                result.data.message ||
-                "Registration successful";
+        const response =
+            await api(
+                "/api/auth/register",
+                "POST",
+                {
+                    name:
+                        document
+                            .getElementById("name")
+                            .value
+                            .trim(),
 
-            message.className =
-                "success";
+                    email:
+                        document
+                            .getElementById("email")
+                            .value
+                            .trim(),
 
-            setTimeout(
-                function () {
-                    window.location.href =
-                        "/login.html";
-                },
-                1000
+                    studentId:
+                        document
+                            .getElementById("studentId")
+                            .value
+                            .trim(),
+
+                    department:
+                        document
+                            .getElementById("department")
+                            .value
+                            .trim(),
+
+                    password:
+                        document
+                            .getElementById("password")
+                            .value
+                }
             );
+
+
+        if (response.ok) {
+
+            msg.textContent =
+                "Account created successfully. Redirecting to login...";
+
+            msg.className =
+                "auth-message success";
+
+
+            registerForm.reset();
+
+
+            setTimeout(() => {
+
+                window.location.href =
+                    "/login.html";
+
+            }, 1000);
 
         } else {
 
-            message.textContent =
-                result.data.message ||
-                "Registration failed";
+            msg.textContent =
+                response.data.message ||
+                "Unable to create account.";
 
-            message.className =
-                "error";
+            msg.className =
+                "auth-message error";
         }
+
     }
 );
 
