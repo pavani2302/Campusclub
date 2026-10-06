@@ -28,7 +28,25 @@ public class NotificationService {
         this.emailService = emailService;
     }
 
-    public int notifyRegisteredStudents(
+    /*
+     * Result returned after notifying registered students.
+     */
+    public record NotificationResult(
+            int notifiedStudents,
+            int emailsSent,
+            int emailFailed
+    ) {}
+
+    /*
+     * Notify all students registered for an event.
+     *
+     * In-app notification is created for every registered student.
+     *
+     * If sendEmail is true:
+     * - successful email -> emailsSent++
+     * - failed email      -> emailFailed++
+     */
+    public NotificationResult notifyRegisteredStudents(
             Event event,
             String updateMessage,
             boolean sendEmail) {
@@ -36,15 +54,17 @@ public class NotificationService {
         List<EventRegistration> registeredStudents =
                 registrations.findByEventId(event.getId());
 
-        int notificationCount = 0;
+        int notifiedStudents = 0;
+        int emailsSent = 0;
+        int emailFailed = 0;
 
         for (EventRegistration registration : registeredStudents) {
 
             User user = registration.getUser();
 
-            // -----------------------------
+            // -----------------------------------------
             // In-app notification
-            // -----------------------------
+            // -----------------------------------------
 
             Notification notification =
                     new Notification();
@@ -66,25 +86,39 @@ public class NotificationService {
 
             notifications.save(notification);
 
-            notificationCount++;
+            notifiedStudents++;
 
-            // -----------------------------
+            // -----------------------------------------
             // Email notification
-            // -----------------------------
+            // -----------------------------------------
 
             if (sendEmail) {
 
-                emailService.sendEventUpdateEmail(
-                        user,
-                        event,
-                        updateMessage
-                );
+                boolean emailSent =
+                        emailService.sendEventUpdateEmail(
+                                user,
+                                event,
+                                updateMessage
+                        );
+
+                if (emailSent) {
+                    emailsSent++;
+                } else {
+                    emailFailed++;
+                }
             }
         }
 
-        return notificationCount;
+        return new NotificationResult(
+                notifiedStudents,
+                emailsSent,
+                emailFailed
+        );
     }
 
+    /*
+     * Send registration confirmation notification.
+     */
     public void sendRegistrationNotification(
             User user,
             Event event) {
@@ -101,7 +135,7 @@ public class NotificationService {
 
         notification.setMessage(
                 "You have successfully registered for "
-                + event.getTitle()
+                        + event.getTitle()
         );
 
         notification.setCreatedAt(
