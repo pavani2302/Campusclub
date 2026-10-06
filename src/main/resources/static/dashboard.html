@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -15,9 +16,12 @@
         rel="stylesheet"
         href="/css/style.css"
     >
+
 </head>
 
+
 <body>
+
 
 <header class="topbar">
 
@@ -25,15 +29,21 @@
         Campus<span>Club</span>
     </div>
 
+
     <div class="topbar-right">
 
         <div class="top-user">
 
-            <div class="avatar" id="topAvatar">
+            <div
+                class="avatar"
+                id="topAvatar"
+            >
                 U
             </div>
 
+
             <div>
+
                 <strong id="userName">
                     User
                 </strong>
@@ -41,13 +51,69 @@
                 <small id="topRole">
                     STUDENT
                 </small>
+
             </div>
 
         </div>
 
+
+        <div class="notification-wrapper">
+
+            <button
+                id="notificationBtn"
+                class="notification-btn"
+                onclick="toggleNotifications()"
+                type="button"
+                title="Notifications"
+            >
+                🔔
+
+                <span
+                    id="notificationBadge"
+                    class="notification-badge"
+                    style="display:none;"
+                >
+                    0
+                </span>
+
+            </button>
+
+
+            <div
+                id="notificationPanel"
+                class="notification-panel"
+                style="display:none;"
+            >
+
+                <div class="notification-header">
+
+                    <strong>
+                        Notifications
+                    </strong>
+
+                    <button
+                        type="button"
+                        onclick="markAllNotificationsRead()"
+                    >
+                        Mark all read
+                    </button>
+
+                </div>
+
+
+                <div id="notificationList">
+                    Loading...
+                </div>
+
+            </div>
+
+        </div>
+
+
         <button
             id="logout"
             class="btn btn-outline"
+            type="button"
         >
             Logout
         </button>
@@ -57,9 +123,13 @@
 </header>
 
 
+
 <main class="dashboard-container">
 
+
+    <!-- ============================= -->
     <!-- HERO -->
+    <!-- ============================= -->
 
     <section class="dashboard-hero">
 
@@ -69,13 +139,19 @@
                 CAMPUS CLUB MANAGEMENT
             </div>
 
+
             <h1>
+
                 Welcome back,
+
                 <span id="welcomeName">
                     User
                 </span>
+
                 👋
+
             </h1>
+
 
             <p>
                 Manage clubs, events, registrations and
@@ -83,6 +159,7 @@
             </p>
 
         </div>
+
 
         <div
             id="roleBadge"
@@ -94,7 +171,10 @@
     </section>
 
 
+
+    <!-- ============================= -->
     <!-- PROFILE -->
+    <!-- ============================= -->
 
     <section class="profile-card">
 
@@ -107,15 +187,18 @@
                 U
             </div>
 
+
             <div>
 
                 <div class="eyebrow">
                     ACCOUNT PROFILE
                 </div>
 
+
                 <h2 id="profileName">
                     User
                 </h2>
+
 
                 <p id="profileEmail">
                     user@example.com
@@ -129,29 +212,47 @@
         <div class="profile-details">
 
             <div>
-                <span>Student ID</span>
+
+                <span>
+                    Student ID
+                </span>
+
                 <strong id="profileStudentId">
                     —
                 </strong>
+
             </div>
 
+
             <div>
-                <span>Department</span>
+
+                <span>
+                    Department
+                </span>
+
                 <strong id="profileDepartment">
                     —
                 </strong>
+
             </div>
 
+
             <div>
-                <span>Account Type</span>
+
+                <span>
+                    Account Type
+                </span>
+
                 <strong id="profileAccountType">
                     STUDENT
                 </strong>
+
             </div>
 
         </div>
 
     </section>
+
 
 
     <!-- ============================= -->
@@ -163,6 +264,7 @@
         class="hidden"
     >
 
+
         <div class="section-heading">
 
             <div>
@@ -171,9 +273,11 @@
                     ADMIN AREA
                 </div>
 
+
                 <h2>
                     Administration
                 </h2>
+
 
                 <p>
                     Manage clubs, events, registrations
@@ -182,9 +286,11 @@
 
             </div>
 
+
             <button
                 id="refreshAdmin"
                 class="btn btn-outline"
+                type="button"
             >
                 ↻ Refresh
             </button>
@@ -192,7 +298,10 @@
         </div>
 
 
+
+        <!-- ============================= -->
         <!-- ADMIN STATS -->
+        <!-- ============================= -->
 
         <div
             id="stats"
@@ -200,9 +309,13 @@
         ></div>
 
 
-        <!-- ADMIN MANAGEMENT -->
+
+        <!-- ============================= -->
+        <!-- CREATE CLUB + CREATE EVENT -->
+        <!-- ============================= -->
 
         <div class="admin-create-grid">
+
 
             <!-- CREATE CLUB -->
 
@@ -214,22 +327,29 @@
                         🏫
                     </div>
 
+
                     <div>
+
                         <h3>
                             Create Club
                         </h3>
 
+
                         <p>
                             Add a new campus club.
                         </p>
+
                     </div>
 
                 </div>
 
 
+
                 <form id="clubForm">
 
+
                     <label>
+
                         Club Name
 
                         <input
@@ -237,30 +357,39 @@
                             placeholder="Example: AI Club"
                             required
                         >
+
                     </label>
 
 
+
                     <label>
+
                         Category
 
                         <input
                             id="clubCategory"
                             placeholder="Technology"
                         >
+
                     </label>
 
 
+
                     <label>
+
                         Coordinator
 
                         <input
                             id="clubCoordinator"
                             placeholder="Faculty / Student coordinator"
                         >
+
                     </label>
 
 
+
                     <label>
+
                         Description
 
                         <textarea
@@ -268,16 +397,23 @@
                             placeholder="Describe the club..."
                             required
                         ></textarea>
+
                     </label>
 
 
-                    <button class="btn btn-primary">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
                         + Create Club
                     </button>
+
 
                 </form>
 
             </div>
+
 
 
             <!-- CREATE EVENT -->
@@ -290,22 +426,29 @@
                         📅
                     </div>
 
+
                     <div>
+
                         <h3>
                             Create Event
                         </h3>
 
+
                         <p>
                             Schedule a new campus event.
                         </p>
+
                     </div>
 
                 </div>
 
 
+
                 <form id="eventForm">
 
+
                     <label>
+
                         Event Title
 
                         <input
@@ -313,10 +456,13 @@
                             placeholder="Java Workshop"
                             required
                         >
+
                     </label>
 
 
+
                     <label>
+
                         Event Date & Time
 
                         <input
@@ -324,10 +470,13 @@
                             type="datetime-local"
                             required
                         >
+
                     </label>
 
 
+
                     <label>
+
                         Venue
 
                         <input
@@ -335,20 +484,32 @@
                             placeholder="Computer Lab - Block A"
                             required
                         >
+
                     </label>
 
 
+
                     <label>
+
                         Club
 
                         <select
                             id="eventClub"
                             required
-                        ></select>
+                        >
+
+                            <option value="">
+                                Select club
+                            </option>
+
+                        </select>
+
                     </label>
 
 
+
                     <label>
+
                         Description
 
                         <textarea
@@ -356,12 +517,18 @@
                             placeholder="Describe the event..."
                             required
                         ></textarea>
+
                     </label>
 
 
-                    <button class="btn btn-primary">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
                         + Create Event
                     </button>
+
 
                 </form>
 
@@ -370,7 +537,251 @@
         </div>
 
 
+
+        <!-- ============================= -->
+        <!-- EDIT EVENT -->
+        <!-- ============================= -->
+
+        <div class="panel large-panel">
+
+            <div class="section-heading compact">
+
+                <div>
+
+                    <div class="eyebrow">
+                        EVENT MANAGEMENT
+                    </div>
+
+
+                    <h2>
+                        Update Event
+                    </h2>
+
+
+                    <p>
+                        Update event details and optionally
+                        notify registered students.
+                    </p>
+
+                </div>
+
+
+                <select
+                    id="editEventSelect"
+                    class="event-select"
+                >
+
+                    <option value="">
+                        Select Event
+                    </option>
+
+                </select>
+
+            </div>
+
+
+
+            <form
+                id="editEventForm"
+            >
+
+
+                <div class="admin-create-grid">
+
+
+                    <div>
+
+
+                        <label>
+
+                            Event Title
+
+                            <input
+                                id="editEventTitle"
+                                required
+                            >
+
+                        </label>
+
+
+
+                        <label>
+
+                            Event Date & Time
+
+                            <input
+                                id="editEventDate"
+                                type="datetime-local"
+                                required
+                            >
+
+                        </label>
+
+
+
+                        <label>
+
+                            Venue
+
+                            <input
+                                id="editEventVenue"
+                                required
+                            >
+
+                        </label>
+
+
+                    </div>
+
+
+
+                    <div>
+
+
+                        <label>
+
+                            Club
+
+                            <select
+                                id="editEventClub"
+                                required
+                            >
+
+                                <option value="">
+                                    Select club
+                                </option>
+
+                            </select>
+
+                        </label>
+
+
+
+                        <label>
+
+                            Description
+
+                            <textarea
+                                id="editEventDescription"
+                                required
+                            ></textarea>
+
+                        </label>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- NOTIFICATION OPTIONS -->
+
+                <div
+                    style="
+                        margin-top: 20px;
+                        padding: 16px;
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        background: var(--bg);
+                    "
+                >
+
+                    <strong>
+                        Student Notifications
+                    </strong>
+
+
+                    <div
+                        style="
+                            display:flex;
+                            flex-direction:column;
+                            gap:10px;
+                            margin-top:12px;
+                        "
+                    >
+
+                        <label
+                            style="
+                                display:flex;
+                                align-items:center;
+                                gap:8px;
+                            "
+                        >
+
+                            <input
+                                type="checkbox"
+                                id="notifyStudents"
+                                checked
+                            >
+
+                            Notify registered students
+
+                        </label>
+
+
+
+                        <label
+                            style="
+                                display:flex;
+                                align-items:center;
+                                gap:8px;
+                            "
+                        >
+
+                            <input
+                                type="checkbox"
+                                id="sendEmail"
+                                checked
+                            >
+
+                            Send email notification
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+
+                <div
+                    style="
+                        display:flex;
+                        gap:12px;
+                        margin-top:18px;
+                    "
+                >
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Update Event
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="btn btn-outline"
+                        onclick="clearEditEventForm()"
+                    >
+                        Clear
+                    </button>
+
+                </div>
+
+
+            </form>
+
+        </div>
+
+
+
+        <!-- ============================= -->
         <!-- CLUB MEMBERS -->
+        <!-- ============================= -->
 
         <div class="panel large-panel">
 
@@ -382,9 +793,11 @@
                         MEMBERSHIP MANAGEMENT
                     </div>
 
+
                     <h2>
                         Club Members
                     </h2>
+
 
                     <p>
                         See exactly which students joined
@@ -392,6 +805,7 @@
                     </p>
 
                 </div>
+
 
                 <input
                     id="clubSearch"
@@ -402,6 +816,7 @@
             </div>
 
 
+
             <div class="table-wrap">
 
                 <table>
@@ -410,19 +825,30 @@
 
                     <tr>
 
-                        <th>Student</th>
+                        <th>
+                            Student
+                        </th>
 
-                        <th>Student ID</th>
+                        <th>
+                            Student ID
+                        </th>
 
-                        <th>Department</th>
+                        <th>
+                            Department
+                        </th>
 
-                        <th>Club</th>
+                        <th>
+                            Club
+                        </th>
 
-                        <th>Joined</th>
+                        <th>
+                            Joined
+                        </th>
 
                     </tr>
 
                     </thead>
+
 
                     <tbody
                         id="clubMembersTable"
@@ -435,7 +861,10 @@
         </div>
 
 
+
+        <!-- ============================= -->
         <!-- EVENT REGISTRATIONS -->
+        <!-- ============================= -->
 
         <div class="panel large-panel">
 
@@ -447,9 +876,11 @@
                         EVENT MANAGEMENT
                     </div>
 
+
                     <h2>
                         Event Registrations
                     </h2>
+
 
                     <p>
                         See every student registered for
@@ -457,6 +888,7 @@
                     </p>
 
                 </div>
+
 
                 <input
                     id="registrationSearch"
@@ -467,6 +899,7 @@
             </div>
 
 
+
             <div class="table-wrap">
 
                 <table>
@@ -475,21 +908,34 @@
 
                     <tr>
 
-                        <th>Student</th>
+                        <th>
+                            Student
+                        </th>
 
-                        <th>Student ID</th>
+                        <th>
+                            Student ID
+                        </th>
 
-                        <th>Department</th>
+                        <th>
+                            Department
+                        </th>
 
-                        <th>Event</th>
+                        <th>
+                            Event
+                        </th>
 
-                        <th>Club</th>
+                        <th>
+                            Club
+                        </th>
 
-                        <th>Attendance</th>
+                        <th>
+                            Attendance
+                        </th>
 
                     </tr>
 
                     </thead>
+
 
                     <tbody
                         id="eventRegistrationsTable"
@@ -502,9 +948,14 @@
         </div>
 
 
-        <!-- ATTENDANCE -->
 
-        <div class="panel large-panel attendance-panel">
+        <!-- ============================= -->
+        <!-- ATTENDANCE -->
+        <!-- ============================= -->
+
+        <div
+            class="panel large-panel attendance-panel"
+        >
 
             <div class="section-heading">
 
@@ -514,9 +965,11 @@
                         ATTENDANCE MANAGEMENT
                     </div>
 
+
                     <h2>
                         Attendance Dashboard
                     </h2>
+
 
                     <p>
                         Select an event and mark each
@@ -525,16 +978,20 @@
 
                 </div>
 
+
                 <select
                     id="attendanceEvent"
                     class="event-select"
                 >
+
                     <option value="">
                         Select Event
                     </option>
+
                 </select>
 
             </div>
+
 
 
             <!-- ATTENDANCE SUMMARY -->
@@ -543,6 +1000,7 @@
                 id="attendanceSummary"
                 class="attendance-summary"
             ></div>
+
 
 
             <!-- ATTENDANCE TABLE -->
@@ -555,21 +1013,34 @@
 
                     <tr>
 
-                        <th>Student</th>
+                        <th>
+                            Student
+                        </th>
 
-                        <th>Email</th>
+                        <th>
+                            Email
+                        </th>
 
-                        <th>Student ID</th>
+                        <th>
+                            Student ID
+                        </th>
 
-                        <th>Department</th>
+                        <th>
+                            Department
+                        </th>
 
-                        <th>Status</th>
+                        <th>
+                            Status
+                        </th>
 
-                        <th>Action</th>
+                        <th>
+                            Action
+                        </th>
 
                     </tr>
 
                     </thead>
+
 
                     <tbody
                         id="attendanceTable"
@@ -584,11 +1055,15 @@
     </section>
 
 
+
     <!-- ============================= -->
     <!-- STUDENT AREA -->
     <!-- ============================= -->
 
-    <section id="studentArea">
+    <section
+        id="studentArea"
+    >
+
 
         <!-- CLUBS -->
 
@@ -600,9 +1075,11 @@
                     STUDENT AREA
                 </div>
 
+
                 <h2>
                     Campus Clubs
                 </h2>
+
 
                 <p>
                     Discover clubs and become part of
@@ -614,15 +1091,19 @@
         </div>
 
 
+
         <div
             id="clubs"
             class="content-grid"
         ></div>
 
 
+
         <!-- EVENTS -->
 
-        <div class="section-heading section-gap">
+        <div
+            class="section-heading section-gap"
+        >
 
             <div>
 
@@ -630,9 +1111,11 @@
                     CAMPUS EVENTS
                 </div>
 
+
                 <h2>
                     Upcoming Events
                 </h2>
+
 
                 <p>
                     Register for workshops, competitions
@@ -644,15 +1127,19 @@
         </div>
 
 
+
         <div
             id="events"
             class="content-grid"
         ></div>
 
 
+
         <!-- MY ACTIVITY -->
 
-        <div class="section-heading section-gap">
+        <div
+            class="section-heading section-gap"
+        >
 
             <div>
 
@@ -660,9 +1147,11 @@
                     MY ACTIVITY
                 </div>
 
+
                 <h2>
                     My Event Registrations
                 </h2>
+
 
                 <p>
                     Track your registered events and
@@ -674,14 +1163,17 @@
         </div>
 
 
+
         <div
             id="mine"
             class="activity-list"
         ></div>
 
+
     </section>
 
 </main>
+
 
 
 <footer>
@@ -689,8 +1181,12 @@
 </footer>
 
 
+
 <script src="/js/app.js"></script>
+
 <script src="/js/dashboard.js"></script>
 
+
 </body>
+
 </html>

@@ -2373,3 +2373,146 @@ footer {
         width: 100%;
     }
 }
+
+.notification-wrapper {
+    position: relative;
+}
+
+.notification-btn {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    font-size: 19px;
+}
+
+.notification-btn:hover {
+    border-color: var(--primary);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+
+    min-width: 19px;
+    height: 19px;
+
+    padding: 0 5px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 20px;
+
+    background: #dc2626;
+    color: white;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.notification-panel {
+    position: absolute;
+    top: 52px;
+    right: 0;
+
+    width: 360px;
+    max-height: 480px;
+
+    overflow-y: auto;
+
+    background: white;
+
+    border: 1px solid var(--border);
+    border-radius: 14px;
+
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+
+    z-index: 1000;
+}
+
+.notification-header {
+    padding: 15px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.notification-header strong {
+    color: var(--text);
+}
+
+.notification-header button {
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.notification-item {
+    padding: 15px 16px;
+
+    border-bottom: 1px solid var(--border);
+
+    cursor: pointer;
+
+    transition: background 0.2s ease;
+}
+
+.notification-item:hover {
+    background: var(--bg);
+}
+
+.notification-item.unread {
+    background: var(--primary-soft);
+}
+
+.notification-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.notification-message {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.notification-date {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.no-notifications {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+@media (max-width: 520px) {
+
+    .notification-panel {
+        position: fixed;
+
+        top: 70px;
+        left: 5%;
+        right: 5%;
+
+        width: auto;
+        max-height: 70vh;
+    }
+}

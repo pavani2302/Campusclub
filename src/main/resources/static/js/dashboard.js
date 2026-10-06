@@ -6,6 +6,8 @@ let events = [];
 let clubMembers = [];
 let eventRegistrations = [];
 
+let notificationPanelOpen = false;
+
 
 const $ = (id) => document.getElementById(id);
 
@@ -31,18 +33,20 @@ async function loadDashboard() {
 
     if (me.role === "ADMIN") {
 
-        $("adminPanel").classList.remove("hidden");
-        $("studentArea").classList.add("hidden");
+        $("adminPanel")?.classList.remove("hidden");
+        $("studentArea")?.classList.add("hidden");
 
         await loadAdminDashboard();
 
     } else {
 
-        $("adminPanel").classList.add("hidden");
-        $("studentArea").classList.remove("hidden");
+        $("adminPanel")?.classList.add("hidden");
+        $("studentArea")?.classList.remove("hidden");
 
         await loadStudentDashboard();
     }
+
+    await loadNotificationCount();
 }
 
 
@@ -57,38 +61,60 @@ function updateProfile() {
     const firstLetter =
         (me.name || "U").charAt(0).toUpperCase();
 
-    $("userName").textContent =
-        me.name || "User";
+    if ($("userName")) {
+        $("userName").textContent =
+            me.name || "User";
+    }
 
-    $("welcomeName").textContent =
-        me.name || "User";
+    if ($("welcomeName")) {
+        $("welcomeName").textContent =
+            me.name || "User";
+    }
 
-    $("profileName").textContent =
-        me.name || "User";
+    if ($("profileName")) {
+        $("profileName").textContent =
+            me.name || "User";
+    }
 
-    $("profileEmail").textContent =
-        me.email || "";
+    if ($("profileEmail")) {
+        $("profileEmail").textContent =
+            me.email || "";
+    }
 
-    $("profileStudentId").textContent =
-        me.studentId || "Not provided";
+    if ($("profileStudentId")) {
+        $("profileStudentId").textContent =
+            me.studentId || "Not provided";
+    }
 
-    $("profileDepartment").textContent =
-        me.department || "Not provided";
+    if ($("profileDepartment")) {
+        $("profileDepartment").textContent =
+            me.department || "Not provided";
+    }
 
-    $("profileAccountType").textContent =
-        me.role || "STUDENT";
+    if ($("profileAccountType")) {
+        $("profileAccountType").textContent =
+            me.role || "STUDENT";
+    }
 
-    $("roleBadge").textContent =
-        me.role || "STUDENT";
+    if ($("roleBadge")) {
+        $("roleBadge").textContent =
+            me.role || "STUDENT";
+    }
 
-    $("topRole").textContent =
-        me.role || "STUDENT";
+    if ($("topRole")) {
+        $("topRole").textContent =
+            me.role || "STUDENT";
+    }
 
-    $("topAvatar").textContent =
-        firstLetter;
+    if ($("topAvatar")) {
+        $("topAvatar").textContent =
+            firstLetter;
+    }
 
-    $("profileAvatar").textContent =
-        firstLetter;
+    if ($("profileAvatar")) {
+        $("profileAvatar").textContent =
+            firstLetter;
+    }
 }
 
 
@@ -145,72 +171,82 @@ async function loadStats() {
 
     if (!response.ok) {
 
-        $("stats").innerHTML =
-            errorCard(
-                "Unable to load admin statistics."
-            );
+        if ($("stats")) {
+            $("stats").innerHTML =
+                errorCard(
+                    "Unable to load admin statistics."
+                );
+        }
 
         return;
     }
 
     const data = response.data;
 
-    $("stats").innerHTML = `
+    if ($("stats")) {
 
-        ${statCard(
-            "Students",
-            data.students,
-            "👨‍🎓",
-            "Registered students"
-        )}
+        $("stats").innerHTML = `
 
-        ${statCard(
-            "Clubs",
-            data.clubs,
-            "🏫",
-            "Campus communities"
-        )}
+            ${statCard(
+                "Students",
+                data.students,
+                "👨‍🎓",
+                "Registered students"
+            )}
 
-        ${statCard(
-            "Events",
-            data.events,
-            "📅",
-            "Campus events"
-        )}
+            ${statCard(
+                "Clubs",
+                data.clubs,
+                "🏫",
+                "Campus communities"
+            )}
 
-        ${statCard(
-            "Registrations",
-            data.registrations,
-            "🎟️",
-            "Event registrations"
-        )}
+            ${statCard(
+                "Events",
+                data.events,
+                "📅",
+                "Campus events"
+            )}
 
-        ${statCard(
-            "Present",
-            data.present,
-            "✓",
-            "Attendance marked"
-        )}
+            ${statCard(
+                "Registrations",
+                data.registrations,
+                "🎟️",
+                "Event registrations"
+            )}
 
-        ${statCard(
-            "Absent",
-            data.absent,
-            "!",
-            "Students absent"
-        )}
+            ${statCard(
+                "Present",
+                data.present,
+                "✓",
+                "Attendance marked"
+            )}
 
-        ${statCard(
-            "Not Marked",
-            data.notMarked,
-            "○",
-            "Attendance pending"
-        )}
+            ${statCard(
+                "Absent",
+                data.absent,
+                "!",
+                "Students absent"
+            )}
 
-    `;
+            ${statCard(
+                "Not Marked",
+                data.notMarked,
+                "○",
+                "Attendance pending"
+            )}
+
+        `;
+    }
 }
 
 
-function statCard(title, value, icon, subtitle) {
+function statCard(
+    title,
+    value,
+    icon,
+    subtitle
+) {
 
     return `
 
@@ -255,8 +291,10 @@ async function loadClubs() {
 
     if (!response.ok) {
 
-        $("clubs").innerHTML =
-            errorCard("Unable to load clubs.");
+        if ($("clubs")) {
+            $("clubs").innerHTML =
+                errorCard("Unable to load clubs.");
+        }
 
         return;
     }
@@ -270,6 +308,7 @@ async function loadClubs() {
 
         $("eventClub").innerHTML =
             `<option value="">Select club</option>` +
+
             clubs.map(club => `
                 <option value="${club.id}">
                     ${esc(club.name)}
@@ -306,7 +345,10 @@ async function loadClubs() {
                             </div>
 
                             <span class="soft-badge">
-                                ${esc(club.category || "General")}
+                                ${esc(
+                                    club.category ||
+                                    "General"
+                                )}
                             </span>
 
                         </div>
@@ -339,6 +381,7 @@ async function loadClubs() {
 
 
                         ${
+                            me &&
                             me.role === "STUDENT"
                             ? `
                                 <button
@@ -397,8 +440,10 @@ async function loadEvents() {
 
     if (!response.ok) {
 
-        $("events").innerHTML =
-            errorCard("Unable to load events.");
+        if ($("events")) {
+            $("events").innerHTML =
+                errorCard("Unable to load events.");
+        }
 
         return;
     }
@@ -410,93 +455,99 @@ async function loadEvents() {
 
     if (!events.length) {
 
-        $("events").innerHTML =
-            emptyCard(
-                "No upcoming events",
-                "New campus events will appear here."
-            );
+        if ($("events")) {
+            $("events").innerHTML =
+                emptyCard(
+                    "No upcoming events",
+                    "New campus events will appear here."
+                );
+        }
 
         return;
     }
 
 
-    $("events").innerHTML =
-        events.map(event => {
+    if ($("events")) {
 
-            const eventDate =
-                formatDate(event.eventDate);
+        $("events").innerHTML =
+            events.map(event => {
 
-            const clubName =
-                event.club?.name ||
-                "Campus Club";
+                const eventDate =
+                    formatDate(event.eventDate);
 
-
-            return `
-
-                <article class="event-card">
-
-                    <div class="event-date">
-
-                        <strong>
-                            ${eventDate.day}
-                        </strong>
-
-                        <span>
-                            ${eventDate.month}
-                        </span>
-
-                    </div>
+                const clubName =
+                    event.club?.name ||
+                    "Campus Club";
 
 
-                    <div class="event-content">
+                return `
 
-                        <div class="event-club">
-                            ${esc(clubName)}
-                        </div>
+                    <article class="event-card">
 
-                        <h3>
-                            ${esc(event.title)}
-                        </h3>
+                        <div class="event-date">
 
-                        <p>
-                            ${esc(event.description)}
-                        </p>
-
-
-                        <div class="event-info">
+                            <strong>
+                                ${eventDate.day}
+                            </strong>
 
                             <span>
-                                🕐
-                                ${esc(eventDate.full)}
-                            </span>
-
-                            <span>
-                                📍
-                                ${esc(event.venue)}
+                                ${eventDate.month}
                             </span>
 
                         </div>
 
 
-                        ${
-                            me.role === "STUDENT"
-                            ? `
-                                <button
-                                    class="btn btn-primary"
-                                    onclick="registerEvent(${event.id})"
-                                >
-                                    Register for Event
-                                </button>
-                            `
-                            : ""
-                        }
+                        <div class="event-content">
 
-                    </div>
+                            <div class="event-club">
+                                ${esc(clubName)}
+                            </div>
 
-                </article>
+                            <h3>
+                                ${esc(event.title)}
+                            </h3>
 
-            `;
-        }).join("");
+                            <p>
+                                ${esc(event.description)}
+                            </p>
+
+
+                            <div class="event-info">
+
+                                <span>
+                                    🕐
+                                    ${esc(eventDate.full)}
+                                </span>
+
+                                <span>
+                                    📍
+                                    ${esc(event.venue)}
+                                </span>
+
+                            </div>
+
+
+                            ${
+                                me &&
+                                me.role === "STUDENT"
+                                ? `
+                                    <button
+                                        class="btn btn-primary"
+                                        onclick="registerEvent(${event.id})"
+                                    >
+                                        Register for Event
+                                    </button>
+                                `
+                                : ""
+                            }
+
+                        </div>
+
+                    </article>
+
+                `;
+            }).join("");
+    }
 }
 
 
@@ -527,6 +578,8 @@ async function registerEvent(id) {
     if (response.ok) {
 
         await loadMyRegistrations();
+
+        await loadNotificationCount();
     }
 }
 
@@ -550,10 +603,12 @@ async function loadMyRegistrations() {
 
     if (!response.ok) {
 
-        $("mine").innerHTML =
-            errorCard(
-                "Unable to load registrations."
-            );
+        if ($("mine")) {
+            $("mine").innerHTML =
+                errorCard(
+                    "Unable to load registrations."
+                );
+        }
 
         return;
     }
@@ -567,78 +622,90 @@ async function loadMyRegistrations() {
 
     if (!registrations.length) {
 
-        $("mine").innerHTML =
-            emptyCard(
-                "No event registrations",
-                "Register for an event above and it will appear here."
-            );
+        if ($("mine")) {
+            $("mine").innerHTML =
+                emptyCard(
+                    "No event registrations",
+                    "Register for an event above and it will appear here."
+                );
+        }
 
         return;
     }
 
 
-    $("mine").innerHTML =
-        registrations.map(registration => {
+    if ($("mine")) {
 
-            const event =
-                registration.event || {};
+        $("mine").innerHTML =
+            registrations.map(registration => {
 
-            const status =
-                registration.attendanceStatus ||
-                getAttendanceStatus(registration);
+                const event =
+                    registration.event || {};
 
-
-            return `
-
-                <div class="activity-card">
-
-                    <div class="activity-icon">
-                        📅
-                    </div>
+                const status =
+                    registration.attendanceStatus ||
+                    getAttendanceStatus(registration);
 
 
-                    <div class="activity-content">
+                return `
 
-                        <div class="activity-top">
+                    <div class="activity-card">
 
-                            <div>
+                        <div class="activity-icon">
+                            📅
+                        </div>
 
-                                <span class="eyebrow">
-                                    EVENT REGISTRATION
-                                </span>
 
-                                <h3>
-                                    ${esc(event.title)}
-                                </h3>
+                        <div class="activity-content">
+
+                            <div class="activity-top">
+
+                                <div>
+
+                                    <span class="eyebrow">
+                                        EVENT REGISTRATION
+                                    </span>
+
+                                    <h3>
+                                        ${esc(event.title)}
+                                    </h3>
+
+                                </div>
+
+                                ${statusBadge(status)}
 
                             </div>
 
-                            ${statusBadge(status)}
 
-                        </div>
+                            <div class="activity-meta">
 
+                                <span>
+                                    📍
+                                    ${esc(
+                                        event.venue ||
+                                        "Venue not specified"
+                                    )}
+                                </span>
 
-                        <div class="activity-meta">
+                                <span>
+                                    🕐
+                                    ${esc(
+                                        formatDate(
+                                            event.eventDate
+                                        ).full
+                                    )}
+                                </span>
 
-                            <span>
-                                📍
-                                ${esc(event.venue || "Venue not specified")}
-                            </span>
-
-                            <span>
-                                🕐
-                                ${esc(formatDate(event.eventDate).full)}
-                            </span>
+                            </div>
 
                         </div>
 
                     </div>
 
-                </div>
+                `;
 
-            `;
-
-        }).join("");
+            }).join("");
+    }
 }
 
 
@@ -729,6 +796,7 @@ function populateAttendanceEvents() {
         `<option value="">
             Select an event
         </option>` +
+
         events.map(event => `
             <option value="${event.id}">
                 ${esc(event.title)}
@@ -757,11 +825,13 @@ async function loadClubMembers() {
 
     if (!response.ok) {
 
-        $("clubMembersTable").innerHTML =
-            tableMessage(
-                5,
-                "Unable to load club members."
-            );
+        if ($("clubMembersTable")) {
+            $("clubMembersTable").innerHTML =
+                tableMessage(
+                    5,
+                    "Unable to load club members."
+                );
+        }
 
         return;
     }
@@ -802,80 +872,85 @@ function renderClubMembers() {
 
     if (!filtered.length) {
 
-        $("clubMembersTable").innerHTML =
-            tableMessage(
-                5,
-                search
-                    ? "No matching club members."
-                    : "No students have joined a club yet."
-            );
+        if ($("clubMembersTable")) {
+            $("clubMembersTable").innerHTML =
+                tableMessage(
+                    5,
+                    search
+                        ? "No matching club members."
+                        : "No students have joined a club yet."
+                );
+        }
 
         return;
     }
 
 
-    $("clubMembersTable").innerHTML =
-        filtered.map(member => `
+    if ($("clubMembersTable")) {
 
-            <tr>
+        $("clubMembersTable").innerHTML =
+            filtered.map(member => `
 
-                <td>
+                <tr>
 
-                    <div class="table-person">
+                    <td>
 
-                        <div class="mini-avatar">
-                            ${initials(member.studentName)}
+                        <div class="table-person">
+
+                            <div class="mini-avatar">
+                                ${initials(member.studentName)}
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    ${esc(member.studentName)}
+                                </strong>
+
+                                <small>
+                                    ${esc(member.email)}
+                                </small>
+
+                            </div>
+
                         </div>
 
-                        <div>
-
-                            <strong>
-                                ${esc(member.studentName)}
-                            </strong>
-
-                            <small>
-                                ${esc(member.email)}
-                            </small>
-
-                        </div>
-
-                    </div>
-
-                </td>
+                    </td>
 
 
-                <td>
-                    ${esc(
-                        member.collegeStudentId ||
-                        "—"
-                    )}
-                </td>
+                    <td>
+                        ${esc(
+                            member.collegeStudentId ||
+                            "—"
+                        )}
+                    </td>
 
 
-                <td>
-                    ${esc(
-                        member.department ||
-                        "—"
-                    )}
-                </td>
+                    <td>
+                        ${esc(
+                            member.department ||
+                            "—"
+                        )}
+                    </td>
 
 
-                <td>
+                    <td>
 
-                    <span class="club-pill">
-                        ${esc(member.clubName)}
-                    </span>
+                        <span class="club-pill">
+                            ${esc(member.clubName)}
+                        </span>
 
-                </td>
+                    </td>
 
 
-                <td>
-                    ${esc(member.joinedAt || "—")}
-                </td>
+                    <td>
+                        ${esc(member.joinedAt || "—")}
+                    </td>
 
-            </tr>
+                </tr>
 
-        `).join("");
+            `).join("");
+    }
 }
 
 
@@ -892,11 +967,13 @@ async function loadEventRegistrations() {
 
     if (!response.ok) {
 
-        $("eventRegistrationsTable").innerHTML =
-            tableMessage(
-                6,
-                "Unable to load event registrations."
-            );
+        if ($("eventRegistrationsTable")) {
+            $("eventRegistrationsTable").innerHTML =
+                tableMessage(
+                    6,
+                    "Unable to load event registrations."
+                );
+        }
 
         return;
     }
@@ -938,92 +1015,101 @@ function renderEventRegistrations() {
 
     if (!filtered.length) {
 
-        $("eventRegistrationsTable").innerHTML =
-            tableMessage(
-                6,
-                search
-                    ? "No matching registrations."
-                    : "No students have registered for events yet."
-            );
+        if ($("eventRegistrationsTable")) {
+            $("eventRegistrationsTable").innerHTML =
+                tableMessage(
+                    6,
+                    search
+                        ? "No matching registrations."
+                        : "No students have registered for events yet."
+                );
+        }
 
         return;
     }
 
 
-    $("eventRegistrationsTable").innerHTML =
-        filtered.map(reg => `
+    if ($("eventRegistrationsTable")) {
 
-            <tr>
+        $("eventRegistrationsTable").innerHTML =
+            filtered.map(reg => `
 
-                <td>
+                <tr>
 
-                    <div class="table-person">
+                    <td>
 
-                        <div class="mini-avatar">
-                            ${initials(reg.studentName)}
+                        <div class="table-person">
+
+                            <div class="mini-avatar">
+                                ${initials(reg.studentName)}
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    ${esc(reg.studentName)}
+                                </strong>
+
+                                <small>
+                                    ${esc(reg.email)}
+                                </small>
+
+                            </div>
+
                         </div>
 
-                        <div>
-
-                            <strong>
-                                ${esc(reg.studentName)}
-                            </strong>
-
-                            <small>
-                                ${esc(reg.email)}
-                            </small>
-
-                        </div>
-
-                    </div>
-
-                </td>
+                    </td>
 
 
-                <td>
-                    ${esc(
-                        reg.collegeStudentId ||
-                        "—"
-                    )}
-                </td>
+                    <td>
+                        ${esc(
+                            reg.collegeStudentId ||
+                            "—"
+                        )}
+                    </td>
 
 
-                <td>
-                    ${esc(
-                        reg.department ||
-                        "—"
-                    )}
-                </td>
+                    <td>
+                        ${esc(
+                            reg.department ||
+                            "—"
+                        )}
+                    </td>
 
 
-                <td>
+                    <td>
 
-                    <strong>
-                        ${esc(reg.eventTitle)}
-                    </strong>
+                        <strong>
+                            ${esc(reg.eventTitle)}
+                        </strong>
 
-                    <small class="table-sub">
-                        ${esc(formatDate(reg.eventDate).full)}
-                    </small>
+                        <small class="table-sub">
+                            ${esc(
+                                formatDate(
+                                    reg.eventDate
+                                ).full
+                            )}
+                        </small>
 
-                </td>
+                    </td>
 
 
-                <td>
-                    ${esc(reg.clubName || "—")}
-                </td>
+                    <td>
+                        ${esc(reg.clubName || "—")}
+                    </td>
 
 
-                <td>
-                    ${statusBadge(
-                        reg.attendanceStatus ||
-                        "NOT_MARKED"
-                    )}
-                </td>
+                    <td>
+                        ${statusBadge(
+                            reg.attendanceStatus ||
+                            "NOT_MARKED"
+                        )}
+                    </td>
 
-            </tr>
+                </tr>
 
-        `).join("");
+            `).join("");
+    }
 }
 
 
@@ -1040,14 +1126,17 @@ async function loadAttendance() {
 
     if (!select || !select.value) {
 
-        $("attendanceSummary").innerHTML =
-            "";
+        if ($("attendanceSummary")) {
+            $("attendanceSummary").innerHTML = "";
+        }
 
-        $("attendanceTable").innerHTML =
-            tableMessage(
-                6,
-                "Select an event to manage attendance."
-            );
+        if ($("attendanceTable")) {
+            $("attendanceTable").innerHTML =
+                tableMessage(
+                    6,
+                    "Select an event to manage attendance."
+                );
+        }
 
         return;
     }
@@ -1061,11 +1150,13 @@ async function loadAttendance() {
 
     if (!response.ok) {
 
-        $("attendanceTable").innerHTML =
-            tableMessage(
-                6,
-                "Unable to load attendance."
-            );
+        if ($("attendanceTable")) {
+            $("attendanceTable").innerHTML =
+                tableMessage(
+                    6,
+                    "Unable to load attendance."
+                );
+        }
 
         return;
     }
@@ -1075,33 +1166,36 @@ async function loadAttendance() {
         response.data;
 
 
-    $("attendanceSummary").innerHTML = `
+    if ($("attendanceSummary")) {
 
-        ${attendanceSummaryCard(
-            "Total Registered",
-            data.total,
-            "total"
-        )}
+        $("attendanceSummary").innerHTML = `
 
-        ${attendanceSummaryCard(
-            "Present",
-            data.present,
-            "present"
-        )}
+            ${attendanceSummaryCard(
+                "Total Registered",
+                data.total,
+                "total"
+            )}
 
-        ${attendanceSummaryCard(
-            "Absent",
-            data.absent,
-            "absent"
-        )}
+            ${attendanceSummaryCard(
+                "Present",
+                data.present,
+                "present"
+            )}
 
-        ${attendanceSummaryCard(
-            "Not Marked",
-            data.notMarked,
-            "pending"
-        )}
+            ${attendanceSummaryCard(
+                "Absent",
+                data.absent,
+                "absent"
+            )}
 
-    `;
+            ${attendanceSummaryCard(
+                "Not Marked",
+                data.notMarked,
+                "pending"
+            )}
+
+        `;
+    }
 
 
     const students =
@@ -1112,96 +1206,109 @@ async function loadAttendance() {
 
     if (!students.length) {
 
-        $("attendanceTable").innerHTML =
-            tableMessage(
-                6,
-                "No students are registered for this event yet."
-            );
+        if ($("attendanceTable")) {
+            $("attendanceTable").innerHTML =
+                tableMessage(
+                    6,
+                    "No students are registered for this event yet."
+                );
+        }
 
         return;
     }
 
 
-    $("attendanceTable").innerHTML =
-        students.map(student => `
+    if ($("attendanceTable")) {
 
-            <tr>
+        $("attendanceTable").innerHTML =
+            students.map(student => `
 
-                <td>
+                <tr>
 
-                    <div class="table-person">
+                    <td>
 
-                        <div class="mini-avatar">
-                            ${initials(student.studentName)}
+                        <div class="table-person">
+
+                            <div class="mini-avatar">
+                                ${initials(student.studentName)}
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    ${esc(
+                                        student.studentName
+                                    )}
+                                </strong>
+
+                            </div>
+
                         </div>
 
-                        <div>
+                    </td>
 
-                            <strong>
-                                ${esc(student.studentName)}
-                            </strong>
+
+                    <td>
+                        ${esc(student.email)}
+                    </td>
+
+
+                    <td>
+                        ${esc(
+                            student.studentId ||
+                            "—"
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${esc(
+                            student.department ||
+                            "—"
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${statusBadge(
+                            student.attendanceStatus
+                        )}
+                    </td>
+
+
+                    <td>
+
+                        <div class="attendance-actions">
+
+                            <button
+                                class="attendance-btn present"
+                                onclick="markAttendance(
+                                    ${student.registrationId},
+                                    true
+                                )"
+                            >
+                                ✓ Present
+                            </button>
+
+
+                            <button
+                                class="attendance-btn absent"
+                                onclick="markAttendance(
+                                    ${student.registrationId},
+                                    false
+                                )"
+                            >
+                                ✕ Absent
+                            </button>
 
                         </div>
 
-                    </div>
+                    </td>
 
-                </td>
+                </tr>
 
-
-                <td>
-                    ${esc(student.email)}
-                </td>
-
-
-                <td>
-                    ${esc(student.studentId || "—")}
-                </td>
-
-
-                <td>
-                    ${esc(student.department || "—")}
-                </td>
-
-
-                <td>
-                    ${statusBadge(
-                        student.attendanceStatus
-                    )}
-                </td>
-
-
-                <td>
-
-                    <div class="attendance-actions">
-
-                        <button
-                            class="attendance-btn present"
-                            onclick="markAttendance(
-                                ${student.registrationId},
-                                true
-                            )"
-                        >
-                            ✓ Present
-                        </button>
-
-
-                        <button
-                            class="attendance-btn absent"
-                            onclick="markAttendance(
-                                ${student.registrationId},
-                                false
-                            )"
-                        >
-                            ✕ Absent
-                        </button>
-
-                    </div>
-
-                </td>
-
-            </tr>
-
-        `).join("");
+            `).join("");
+    }
 }
 
 
@@ -1266,7 +1373,8 @@ $("clubForm")?.addEventListener(
                 "/api/clubs",
                 "POST",
                 {
-                    name: $("clubName").value.trim(),
+                    name:
+                        $("clubName").value.trim(),
 
                     category:
                         $("clubCategory").value.trim(),
@@ -1444,6 +1552,452 @@ $("logout")?.addEventListener(
         window.location.href = "/";
     }
 );
+
+
+/*
+ * =========================
+ * NOTIFICATIONS
+ * =========================
+ */
+
+async function loadNotificationCount() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/notifications/unread-count"
+            );
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data =
+            await response.json();
+
+        const badge =
+            $("notificationBadge");
+
+        if (!badge) {
+            return;
+        }
+
+        if (data.count > 0) {
+
+            badge.textContent =
+                data.count;
+
+            badge.style.display =
+                "inline-flex";
+
+        } else {
+
+            badge.style.display =
+                "none";
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Notification count error:",
+            error
+        );
+    }
+}
+
+
+async function loadNotifications() {
+
+    const list =
+        $("notificationList");
+
+    if (!list) {
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/notifications"
+            );
+
+        if (!response.ok) {
+
+            list.innerHTML =
+                "<p>Unable to load notifications.</p>";
+
+            return;
+        }
+
+        const notifications =
+            await response.json();
+
+
+        if (!notifications.length) {
+
+            list.innerHTML =
+                `
+                    <div class="no-notifications">
+                        No notifications
+                    </div>
+                `;
+
+            return;
+        }
+
+
+        list.innerHTML =
+            notifications.map(
+                notification => {
+
+                    const unreadClass =
+                        notification.read
+                            ? ""
+                            : "unread";
+
+
+                    return `
+                        <div
+                            class="notification-item ${unreadClass}"
+                            onclick="markNotificationRead(
+                                ${notification.id}
+                            )"
+                        >
+
+                            <div
+                                class="notification-title"
+                            >
+                                ${escapeNotificationText(
+                                    notification.title
+                                )}
+                            </div>
+
+
+                            <div
+                                class="notification-message"
+                            >
+                                ${escapeNotificationText(
+                                    notification.message
+                                )}
+                            </div>
+
+
+                            <div
+                                class="notification-date"
+                            >
+                                ${formatNotificationDate(
+                                    notification.createdAt
+                                )}
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+            ).join("");
+
+    } catch (error) {
+
+        console.error(
+            "Notification loading error:",
+            error
+        );
+    }
+}
+
+
+async function markNotificationRead(id) {
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/notifications/${id}/read`,
+                {
+                    method: "PUT"
+                }
+            );
+
+
+        if (!response.ok) {
+            return;
+        }
+
+
+        await loadNotifications();
+
+        await loadNotificationCount();
+
+    } catch (error) {
+
+        console.error(
+            "Mark notification error:",
+            error
+        );
+    }
+}
+
+
+async function markAllNotificationsRead() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/notifications/read-all",
+                {
+                    method: "PUT"
+                }
+            );
+
+
+        if (!response.ok) {
+            return;
+        }
+
+
+        await loadNotifications();
+
+        await loadNotificationCount();
+
+    } catch (error) {
+
+        console.error(
+            "Mark all notifications error:",
+            error
+        );
+    }
+}
+
+
+async function toggleNotifications() {
+
+    const panel =
+        $("notificationPanel");
+
+    if (!panel) {
+        return;
+    }
+
+
+    notificationPanelOpen =
+        !notificationPanelOpen;
+
+
+    if (notificationPanelOpen) {
+
+        panel.style.display =
+            "block";
+
+        await loadNotifications();
+
+        await loadNotificationCount();
+
+    } else {
+
+        panel.style.display =
+            "none";
+    }
+}
+
+
+function formatNotificationDate(value) {
+
+    if (!value) {
+        return "";
+    }
+
+    try {
+
+        return new Date(value)
+            .toLocaleString();
+
+    } catch {
+
+        return value;
+    }
+}
+
+
+function escapeNotificationText(value) {
+
+    if (!value) {
+        return "";
+    }
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/*
+ * =========================
+ * UPDATE EVENT
+ * =========================
+ */
+
+async function updateEvent(eventId) {
+
+    const notifyCheckbox =
+        $("notifyStudents");
+
+    const emailCheckbox =
+        $("sendEmail");
+
+
+    const payload = {
+
+        title:
+            $("eventTitle").value.trim(),
+
+        description:
+            $("eventDescription").value.trim(),
+
+        eventDate:
+            $("eventDate").value,
+
+        venue:
+            $("eventVenue").value.trim(),
+
+        clubId:
+            Number(
+                $("eventClub").value
+            ),
+
+        notifyStudents:
+            notifyCheckbox
+                ? notifyCheckbox.checked
+                : false,
+
+        sendEmail:
+            emailCheckbox
+                ? emailCheckbox.checked
+                : false
+    };
+
+
+    if (!payload.title) {
+
+        showToast(
+            "Event title is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!payload.eventDate) {
+
+        showToast(
+            "Event date is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!payload.venue) {
+
+        showToast(
+            "Event venue is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!payload.clubId) {
+
+        showToast(
+            "Please select a club.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const response =
+        await api(
+            `/api/events/${eventId}`,
+            "PUT",
+            payload
+        );
+
+
+    const message =
+        response.data?.message ||
+        (
+            response.ok
+                ? "Event updated successfully."
+                : "Failed to update event."
+        );
+
+
+    if (!response.ok) {
+
+        showToast(
+            message,
+            "error"
+        );
+
+        return;
+    }
+
+
+    const notifiedStudents =
+        Number(
+            response.data?.notifiedStudents || 0
+        );
+
+
+    showToast(
+        message +
+        (
+            payload.notifyStudents
+                ? ` ${notifiedStudents} registered student(s) notified.`
+                : " No student notifications were sent."
+        ),
+        "success"
+    );
+
+
+    /*
+     * Refresh admin data after update
+     */
+
+    await loadAdminEvents();
+
+    populateAttendanceEvents();
+
+    await loadEvents();
+
+    await loadStats();
+}
 
 
 /*
@@ -1677,5 +2231,31 @@ function showToast(
     }, 3000);
 }
 
+
+/*
+ * =========================
+ * NOTIFICATION COUNT
+ * =========================
+ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        loadNotificationCount();
+
+        setInterval(
+            loadNotificationCount,
+            30000
+        );
+    }
+);
+
+
+/*
+ * =========================
+ * START APPLICATION
+ * =========================
+ */
 
 loadDashboard();
