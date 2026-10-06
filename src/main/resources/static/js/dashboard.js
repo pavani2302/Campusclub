@@ -1,143 +1,466 @@
-let me = null;
+/* =========================================================
+   CampusClub Management System
+   dashboard.js
+   ========================================================= */
 
+let currentUser = null;
 let clubs = [];
 let events = [];
 
 let clubMembers = [];
 let eventRegistrations = [];
-
-let notificationPanelOpen = false;
-
-const $ = (id) => document.getElementById(id);
+let attendanceRecords = [];
 
 
-/*
- * =========================
- * INITIAL LOAD
- * =========================
- */
+/* =========================================================
+   DOM HELPER
+   ========================================================= */
 
-async function loadDashboard() {
+function $(id) {
+    return document.getElementById(id);
+}
 
-    const response = await api("/api/auth/me");
 
-    if (!response.ok) {
-        window.location.href = "/login.html";
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function esc(value) {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* =========================================================
+   API HELPER
+   ========================================================= */
+
+async function api(url, method = "GET", body = null) {
+
+    const options = {
+        method,
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    };
+
+    if (body !== null) {
+        options.body = JSON.stringify(body);
+    }
+
+    try {
+
+        const response = await fetch(url, options);
+
+        let data = null;
+
+        const contentType =
+            response.headers.get("content-type") || "";
+
+        if (contentType.includes("application/json")) {
+
+            data = await response.json();
+
+        } else {
+
+            const text = await response.text();
+
+            if (text) {
+                data = {
+                    message: text
+                };
+            }
+        }
+
+        return {
+            ok: response.ok,
+            status: response.status,
+            data
+        };
+
+    } catch (error) {
+
+        console.error("API request failed:", error);
+
+        return {
+            ok: false,
+            status: 0,
+            data: {
+                message: "Unable to connect to the server."
+            }
+        };
+    }
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function showToast(message, type = "success") {
+
+    const toast = $("toast");
+
+    if (!toast) {
+        console.log(message);
         return;
     }
 
-    me = response.data;
+    toast.textContent = message;
 
-    updateProfile();
+    toast.className = "toast";
 
-    if (me.role === "ADMIN") {
+    if (type === "error") {
+        toast.classList.add("error");
+    } else if (type === "warning") {
+        toast.classList.add("warning");
+    } else {
+        toast.classList.add("success");
+    }
 
-        $("adminPanel")?.classList.remove("hidden");
-        $("studentArea")?.classList.add("hidden");
+    toast.classList.add("show");
+
+    clearTimeout(window.toastTimer);
+
+    window.toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3500);
+}
+
+
+/* =========================================================
+   TEXT HELPER
+   ========================================================= */
+
+function setText(id, value) {
+
+    const element = $(id);
+
+    if (element) {
+        element.textContent =
+            value === null || value === undefined
+                ? ""
+                : value;
+    }
+}
+
+
+/* =========================================================
+   DATE HELPERS
+   ========================================================= */
+
+function formatDate(value) {
+
+    if (!value) {
+
+        return {
+            full: "N/A",
+            date: "N/A",
+            time: "N/A"
+        };
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+
+        return {
+            full: String(value),
+            date: String(value),
+            time: ""
+        };
+    }
+
+    return {
+        full: date.toLocaleString(),
+        date: date.toLocaleDateString(),
+        time: date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+        })
+    };
+}
+
+
+/* =========================================================
+   DATETIME-LOCAL HELPER
+   ========================================================= */
+
+function toDateTimeLocal(value) {
+
+    if (!value) {
+        return "";
+    }
+
+    const stringValue = String(value);
+
+    /*
+     * Already:
+     * 2026-10-05T18:30
+     */
+
+    if (
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
+            .test(stringValue)
+    ) {
+        return stringValue;
+    }
+
+
+    /*
+     * Backend:
+     * 2026-10-05T18:30:00
+     */
+
+    if (
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/
+            .test(stringValue)
+    ) {
+        return stringValue.substring(0, 16);
+    }
+
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(date.getMonth() + 1)
+            .padStart(2, "0");
+
+    const day =
+        String(date.getDate())
+            .padStart(2, "0");
+
+    const hours =
+        String(date.getHours())
+            .padStart(2, "0");
+
+    const minutes =
+        String(date.getMinutes())
+            .padStart(2, "0");
+
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+
+/* =========================================================
+   INITIAL DASHBOARD LOAD
+   ========================================================= */
+
+async function loadDashboard() {
+
+    const response =
+        await api("/api/auth/me");
+
+
+    if (!response.ok || !response.data) {
+
+        window.location.href =
+            "/login.html";
+
+        return;
+    }
+
+
+    currentUser =
+        response.data;
+
+
+    updateUserProfile();
+
+
+    if (
+        String(currentUser.role)
+            .toUpperCase() === "ADMIN"
+    ) {
+
+        showAdminDashboard();
 
         await loadAdminDashboard();
 
     } else {
 
-        $("adminPanel")?.classList.add("hidden");
-        $("studentArea")?.classList.remove("hidden");
+        showStudentDashboard();
 
         await loadStudentDashboard();
     }
+
 
     await loadNotificationCount();
 }
 
 
-/*
- * =========================
- * PROFILE
- * =========================
- */
+/* =========================================================
+   USER PROFILE
+   ========================================================= */
 
-function updateProfile() {
+function updateUserProfile() {
+
+    const name =
+        currentUser?.name ||
+        currentUser?.username ||
+        currentUser?.email ||
+        "User";
+
+    const email =
+        currentUser?.email ||
+        "";
+
+    const role =
+        currentUser?.role ||
+        "STUDENT";
+
+
+    setText("userName", name);
+
+    setText("welcomeName", name);
+
+    setText("profileName", name);
+
+    setText("profileEmail", email);
+
+    setText(
+        "profileStudentId",
+        currentUser?.studentId ||
+        currentUser?.rollNumber ||
+        currentUser?.rollNo ||
+        "—"
+    );
+
+    setText(
+        "profileDepartment",
+        currentUser?.department ||
+        currentUser?.branch ||
+        "—"
+    );
+
+    setText(
+        "profileAccountType",
+        role
+    );
+
+    setText(
+        "topRole",
+        role
+    );
+
+    setText(
+        "roleBadge",
+        role
+    );
+
+
+    /*
+     * Avatar
+     */
 
     const firstLetter =
-        (me.name || "U").charAt(0).toUpperCase();
+        String(name)
+            .trim()
+            .charAt(0)
+            .toUpperCase() || "U";
 
-    if ($("userName")) {
-        $("userName").textContent =
-            me.name || "User";
+
+    setText(
+        "topAvatar",
+        firstLetter
+    );
+
+    setText(
+        "profileAvatar",
+        firstLetter
+    );
+}
+
+
+/* =========================================================
+   ADMIN / STUDENT VISIBILITY
+   ========================================================= */
+
+function showAdminDashboard() {
+
+    const adminPanel =
+        $("adminPanel");
+
+    const studentArea =
+        $("studentArea");
+
+
+    if (adminPanel) {
+
+        adminPanel.classList.remove(
+            "hidden"
+        );
+
+        adminPanel.style.display =
+            "";
     }
 
-    if ($("welcomeName")) {
-        $("welcomeName").textContent =
-            me.name || "User";
-    }
 
-    if ($("profileName")) {
-        $("profileName").textContent =
-            me.name || "User";
-    }
+    if (studentArea) {
 
-    if ($("profileEmail")) {
-        $("profileEmail").textContent =
-            me.email || "";
-    }
+        studentArea.classList.add(
+            "hidden"
+        );
 
-    if ($("profileStudentId")) {
-        $("profileStudentId").textContent =
-            me.studentId || "Not provided";
-    }
-
-    if ($("profileDepartment")) {
-        $("profileDepartment").textContent =
-            me.department || "Not provided";
-    }
-
-    if ($("profileAccountType")) {
-        $("profileAccountType").textContent =
-            me.role || "STUDENT";
-    }
-
-    if ($("roleBadge")) {
-        $("roleBadge").textContent =
-            me.role || "STUDENT";
-    }
-
-    if ($("topRole")) {
-        $("topRole").textContent =
-            me.role || "STUDENT";
-    }
-
-    if ($("topAvatar")) {
-        $("topAvatar").textContent =
-            firstLetter;
-    }
-
-    if ($("profileAvatar")) {
-        $("profileAvatar").textContent =
-            firstLetter;
+        studentArea.style.display =
+            "none";
     }
 }
 
 
-/*
- * =========================
- * STUDENT DASHBOARD
- * =========================
- */
+function showStudentDashboard() {
 
-async function loadStudentDashboard() {
+    const adminPanel =
+        $("adminPanel");
 
-    await loadClubs();
+    const studentArea =
+        $("studentArea");
 
-    await loadEvents();
 
-    await loadMyRegistrations();
+    if (adminPanel) {
+
+        adminPanel.classList.add(
+            "hidden"
+        );
+
+        adminPanel.style.display =
+            "none";
+    }
+
+
+    if (studentArea) {
+
+        studentArea.classList.remove(
+            "hidden"
+        );
+
+        studentArea.style.display =
+            "";
+    }
 }
 
 
-/*
- * =========================
- * ADMIN DASHBOARD
- * =========================
- */
+/* =========================================================
+   ADMIN DASHBOARD
+   ========================================================= */
 
 async function loadAdminDashboard() {
 
@@ -151,654 +474,415 @@ async function loadAdminDashboard() {
 
     await loadEventRegistrations();
 
+    /*
+     * IMPORTANT:
+     * This function must exist.
+     */
+
     populateAttendanceEvents();
 
     await loadAttendance();
 }
 
 
-/*
- * =========================
- * STATS
- * =========================
- */
+/* =========================================================
+   STUDENT DASHBOARD
+   ========================================================= */
+
+async function loadStudentDashboard() {
+
+    await loadClubs();
+
+    await loadEvents();
+
+    await loadMyClubs();
+
+    await loadMyEvents();
+}
+
+
+/* =========================================================
+   ADMIN STATS
+   ========================================================= */
 
 async function loadStats() {
 
     const response =
         await api("/api/admin/stats");
 
+
     if (!response.ok) {
 
-        if ($("stats")) {
-            $("stats").innerHTML =
-                errorCard(
-                    "Unable to load admin statistics."
-                );
-        }
+        showToast(
+            response.data?.message ||
+            "Unable to load dashboard statistics.",
+            "error"
+        );
 
         return;
     }
 
-    const data = response.data;
 
-    if ($("stats")) {
+    const stats =
+        response.data || {};
 
-        $("stats").innerHTML = `
 
-            ${statCard(
-                "Students",
-                data.students,
-                "👨‍🎓",
-                "Registered students"
-            )}
+    setText(
+        "statStudents",
+        stats.students ?? 0
+    );
 
-            ${statCard(
-                "Clubs",
-                data.clubs,
-                "🏫",
-                "Campus communities"
-            )}
+    setText(
+        "statClubs",
+        stats.clubs ?? 0
+    );
 
-            ${statCard(
-                "Events",
-                data.events,
-                "📅",
-                "Campus events"
-            )}
+    setText(
+        "statEvents",
+        stats.events ?? 0
+    );
 
-            ${statCard(
-                "Registrations",
-                data.registrations,
-                "🎟️",
-                "Event registrations"
-            )}
+    setText(
+        "statMemberships",
+        stats.memberships ?? 0
+    );
 
-            ${statCard(
-                "Present",
-                data.present,
-                "✓",
-                "Attendance marked"
-            )}
+    setText(
+        "statRegistrations",
+        stats.registrations ?? 0
+    );
 
-            ${statCard(
-                "Absent",
-                data.absent,
-                "!",
-                "Students absent"
-            )}
+    setText(
+        "statPresent",
+        stats.present ?? 0
+    );
 
-            ${statCard(
-                "Not Marked",
-                data.notMarked,
-                "○",
-                "Attendance pending"
-            )}
+    setText(
+        "statAbsent",
+        stats.absent ?? 0
+    );
 
-        `;
-    }
+    setText(
+        "statNotMarked",
+        stats.notMarked ?? 0
+    );
 }
 
 
-function statCard(
-    title,
-    value,
-    icon,
-    subtitle
-) {
-
-    return `
-
-        <div class="stat-card">
-
-            <div class="stat-icon">
-                ${icon}
-            </div>
-
-            <div class="stat-content">
-
-                <span>
-                    ${esc(title)}
-                </span>
-
-                <strong>
-                    ${Number(value || 0)}
-                </strong>
-
-                <small>
-                    ${esc(subtitle)}
-                </small>
-
-            </div>
-
-        </div>
-
-    `;
-}
-
-
-/*
- * =========================
- * CLUBS
- * =========================
- */
+/* =========================================================
+   LOAD CLUBS
+   ========================================================= */
 
 async function loadClubs() {
 
     const response =
         await api("/api/clubs");
 
+
     if (!response.ok) {
 
-        if ($("clubs")) {
-            $("clubs").innerHTML =
-                errorCard("Unable to load clubs.");
-        }
+        showToast(
+            response.data?.message ||
+            "Unable to load clubs.",
+            "error"
+        );
 
         return;
     }
 
-    clubs = Array.isArray(response.data)
-        ? response.data
-        : [];
+
+    clubs =
+        Array.isArray(response.data)
+            ? response.data
+            : [];
 
 
-    /*
-     * CREATE EVENT CLUB SELECT
-     */
+    populateClubSelects();
 
-    if ($("eventClub")) {
-
-        $("eventClub").innerHTML =
-            `<option value="">Select club</option>` +
-
-            clubs.map(club => `
-                <option value="${club.id}">
-                    ${esc(club.name)}
-                </option>
-            `).join("");
-    }
+    renderClubs();
+}
 
 
-    /*
-     * UPDATE EVENT CLUB SELECT
-     */
+/* =========================================================
+   POPULATE CLUB SELECTS
+   ========================================================= */
 
-    if ($("editEventClub")) {
+function populateClubSelects() {
 
-        $("editEventClub").innerHTML =
-            `<option value="">Select club</option>` +
-
-            clubs.map(club => `
-                <option value="${club.id}">
-                    ${esc(club.name)}
-                </option>
-            `).join("");
-    }
+    const selects = [
+        $("eventClub"),
+        $("editEventClub")
+    ];
 
 
-    /*
-     * CLUB CARDS
-     */
+    selects.forEach(select => {
 
-    if ($("clubs")) {
-
-        if (!clubs.length) {
-
-            $("clubs").innerHTML =
-                emptyCard(
-                    "No clubs available",
-                    "Clubs created by administrators will appear here."
-                );
-
+        if (!select) {
             return;
         }
 
 
-        $("clubs").innerHTML =
-            clubs.map(club => {
-
-                return `
-
-                    <article class="club-card">
-
-                        <div class="card-top">
-
-                            <div class="club-icon">
-                                🏫
-                            </div>
-
-                            <span class="soft-badge">
-                                ${esc(
-                                    club.category ||
-                                    "General"
-                                )}
-                            </span>
-
-                        </div>
+        const currentValue =
+            select.value;
 
 
-                        <h3>
-                            ${esc(club.name)}
-                        </h3>
+        select.innerHTML =
+            `<option value="">
+                Select club
+            </option>` +
+            clubs.map(club => `
+                <option value="${club.id}">
+                    ${esc(club.name)}
+                </option>
+            `).join("");
 
 
-                        <p>
-                            ${esc(
-                                club.description ||
-                                "Campus community"
-                            )}
-                        </p>
+        if (currentValue) {
 
-
-                        <div class="card-meta">
-
-                            <span>
-                                👤
-                                ${esc(
-                                    club.coordinator ||
-                                    "Coordinator not specified"
-                                )}
-                            </span>
-
-                        </div>
-
-
-                        ${
-                            me &&
-                            me.role === "STUDENT"
-                            ? `
-                                <button
-                                    class="btn btn-primary btn-full"
-                                    onclick="joinClub(${club.id})"
-                                >
-                                    Join Club
-                                </button>
-                            `
-                            : ""
-                        }
-
-                    </article>
-
-                `;
-            }).join("");
-    }
+            select.value =
+                currentValue;
+        }
+    });
 }
 
 
-/*
- * =========================
- * JOIN CLUB
- * =========================
- */
+/* =========================================================
+   RENDER CLUBS
+   ========================================================= */
 
-async function joinClub(id) {
+function renderClubs() {
+
+    const container =
+        $("clubsList");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!clubs.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                No clubs available.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        clubs.map(club => `
+
+            <div class="club-card">
+
+                <h3>
+                    ${esc(club.name)}
+                </h3>
+
+                <p>
+                    ${esc(
+                        club.description ||
+                        "No description available."
+                    )}
+                </p>
+
+                <button
+                    class="btn btn-primary"
+                    onclick="joinClub(${club.id})"
+                >
+                    Join Club
+                </button>
+
+            </div>
+
+        `).join("");
+}
+
+
+/* =========================================================
+   JOIN CLUB
+   ========================================================= */
+
+async function joinClub(clubId) {
 
     const response =
         await api(
-            `/api/clubs/${id}/join`,
+            `/api/clubs/${clubId}/join`,
             "POST"
         );
 
-    const message =
-        response.data?.message ||
-        "Unable to join club.";
+
+    if (!response.ok) {
+
+        showToast(
+            response.data?.message ||
+            "Unable to join club.",
+            "error"
+        );
+
+        return;
+    }
+
 
     showToast(
-        message,
-        response.ok ? "success" : "error"
+        response.data?.message ||
+        "Joined club successfully.",
+        "success"
     );
+
+
+    await loadMyClubs();
+
+    await loadStats();
 }
 
 
-/*
- * =========================
- * EVENTS
- * =========================
- */
+/* =========================================================
+   LOAD EVENTS
+   ========================================================= */
 
 async function loadEvents() {
 
     const response =
         await api("/api/events");
 
+
     if (!response.ok) {
 
-        if ($("events")) {
-            $("events").innerHTML =
-                errorCard("Unable to load events.");
-        }
-
-        return;
-    }
-
-    events = Array.isArray(response.data)
-        ? response.data
-        : [];
-
-
-    if (!events.length) {
-
-        if ($("events")) {
-            $("events").innerHTML =
-                emptyCard(
-                    "No upcoming events",
-                    "New campus events will appear here."
-                );
-        }
-
-        return;
-    }
-
-
-    if ($("events")) {
-
-        $("events").innerHTML =
-            events.map(event => {
-
-                const eventDate =
-                    formatDate(event.eventDate);
-
-                const clubName =
-                    event.club?.name ||
-                    "Campus Club";
-
-
-                return `
-
-                    <article class="event-card">
-
-                        <div class="event-date">
-
-                            <strong>
-                                ${eventDate.day}
-                            </strong>
-
-                            <span>
-                                ${eventDate.month}
-                            </span>
-
-                        </div>
-
-
-                        <div class="event-content">
-
-                            <div class="event-club">
-                                ${esc(clubName)}
-                            </div>
-
-                            <h3>
-                                ${esc(event.title)}
-                            </h3>
-
-                            <p>
-                                ${esc(event.description)}
-                            </p>
-
-
-                            <div class="event-info">
-
-                                <span>
-                                    🕐
-                                    ${esc(eventDate.full)}
-                                </span>
-
-                                <span>
-                                    📍
-                                    ${esc(event.venue)}
-                                </span>
-
-                            </div>
-
-
-                            ${
-                                me &&
-                                me.role === "STUDENT"
-                                ? `
-                                    <button
-                                        class="btn btn-primary"
-                                        onclick="registerEvent(${event.id})"
-                                    >
-                                        Register for Event
-                                    </button>
-                                `
-                                : ""
-                            }
-
-                        </div>
-
-                    </article>
-
-                `;
-            }).join("");
-    }
-}
-
-
-/*
- * =========================
- * REGISTER EVENT
- * =========================
- */
-
-async function registerEvent(id) {
-
-    const response =
-        await api(
-            `/api/events/${id}/register`,
-            "POST"
+        showToast(
+            response.data?.message ||
+            "Unable to load events.",
+            "error"
         );
 
-    const message =
-        response.data?.message ||
-        "Unable to register.";
-
-    showToast(
-        message,
-        response.ok ? "success" : "error"
-    );
-
-
-    if (response.ok) {
-
-        await loadMyRegistrations();
-
-        await loadNotificationCount();
-    }
-}
-
-
-/*
- * =========================
- * MY REGISTRATIONS
- * =========================
- */
-
-async function loadMyRegistrations() {
-
-    if (!me || me.role !== "STUDENT") {
         return;
     }
 
 
-    const response =
-        await api("/api/events/mine");
-
-
-    if (!response.ok) {
-
-        if ($("mine")) {
-            $("mine").innerHTML =
-                errorCard(
-                    "Unable to load registrations."
-                );
-        }
-
-        return;
-    }
-
-
-    const registrations =
+    events =
         Array.isArray(response.data)
             ? response.data
             : [];
 
 
-    if (!registrations.length) {
+    renderEvents();
+}
 
-        if ($("mine")) {
-            $("mine").innerHTML =
-                emptyCard(
-                    "No event registrations",
-                    "Register for an event above and it will appear here."
-                );
-        }
+
+/* =========================================================
+   RENDER EVENTS
+   ========================================================= */
+
+function renderEvents() {
+
+    const container =
+        $("eventsList");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!events.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                No events available.
+            </div>
+        `;
 
         return;
     }
 
 
-    if ($("mine")) {
+    container.innerHTML =
+        events.map(event => {
 
-        $("mine").innerHTML =
-            registrations.map(registration => {
-
-                const event =
-                    registration.event || {};
-
-                const status =
-                    registration.attendanceStatus ||
-                    getAttendanceStatus(registration);
+            const date =
+                formatDate(
+                    event.eventDate
+                );
 
 
-                return `
-
-                    <div class="activity-card">
-
-                        <div class="activity-icon">
-                            📅
-                        </div>
+            const clubName =
+                event.club?.name ||
+                event.clubName ||
+                "General";
 
 
-                        <div class="activity-content">
+            return `
 
-                            <div class="activity-top">
+                <div class="event-card">
 
-                                <div>
+                    <div class="event-card-content">
 
-                                    <span class="eyebrow">
-                                        EVENT REGISTRATION
-                                    </span>
+                        <h3>
+                            ${esc(event.title)}
+                        </h3>
 
-                                    <h3>
-                                        ${esc(event.title)}
-                                    </h3>
+                        <p>
+                            ${esc(
+                                event.description ||
+                                "No description available."
+                            )}
+                        </p>
 
-                                </div>
+                        <div class="event-meta">
 
-                                ${statusBadge(status)}
+                            <span>
+                                📅 ${esc(date.full)}
+                            </span>
 
-                            </div>
+                            <span>
+                                📍 ${esc(
+                                    event.venue ||
+                                    "N/A"
+                                )}
+                            </span>
 
-
-                            <div class="activity-meta">
-
-                                <span>
-                                    📍
-                                    ${esc(
-                                        event.venue ||
-                                        "Venue not specified"
-                                    )}
-                                </span>
-
-                                <span>
-                                    🕐
-                                    ${esc(
-                                        formatDate(
-                                            event.eventDate
-                                        ).full
-                                    )}
-                                </span>
-
-                            </div>
+                            <span>
+                                🏷️ ${esc(clubName)}
+                            </span>
 
                         </div>
 
                     </div>
 
-                `;
 
-            }).join("");
-    }
+                    <button
+                        class="btn btn-primary"
+                        onclick="registerForEvent(${event.id})"
+                    >
+                        Register
+                    </button>
+
+                </div>
+
+            `;
+        }).join("");
 }
 
 
-/*
- * =========================
- * ATTENDANCE STATUS
- * =========================
- */
-
-function getAttendanceStatus(registration) {
-
-    if (
-        registration.attendanceMarked === true ||
-        registration.attendanceMarked === "true"
-    ) {
-
-        return registration.attended
-            ? "PRESENT"
-            : "ABSENT";
-    }
-
-    return "NOT_MARKED";
-}
-
-
-function statusBadge(status) {
-
-    if (status === "PRESENT") {
-
-        return `
-            <span class="status-badge status-present">
-                ✓ Present
-            </span>
-        `;
-    }
-
-
-    if (status === "ABSENT") {
-
-        return `
-            <span class="status-badge status-absent">
-                ✕ Absent
-            </span>
-        `;
-    }
-
-
-    return `
-        <span class="status-badge status-pending">
-            ○ Not Marked
-        </span>
-    `;
-}
-
-
-/*
- * =========================
- * ADMIN EVENTS
- * =========================
- */
+/* =========================================================
+   LOAD ADMIN EVENTS
+   ========================================================= */
 
 async function loadAdminEvents() {
 
     const response =
-        await api("/api/admin/events");
+        await api(
+            "/api/admin/events"
+        );
+
 
     if (!response.ok) {
 
         showToast(
+            response.data?.message ||
             "Unable to load admin events.",
             "error"
         );
@@ -806,45 +890,101 @@ async function loadAdminEvents() {
         return;
     }
 
-    events = Array.isArray(response.data)
-        ? response.data
-        : [];
 
+    events =
+        Array.isArray(response.data)
+            ? response.data
+            : [];
 
-    /*
-     * IMPORTANT:
-     * Populate the Update Event dropdown
-     */
 
     populateEditEventSelect();
 }
 
 
-/*
- * =========================
- * UPDATE EVENT SELECT
- * =========================
- */
+/* =========================================================
+   ATTENDANCE EVENT SELECT
+   ========================================================= */
 
-function populateEditEventSelect() {
+function populateAttendanceEvents() {
 
     const select =
-        $("editEventSelect");
+        $("attendanceEvent");
+
 
     if (!select) {
         return;
     }
 
 
+    const currentValue =
+        select.value;
+
+
     select.innerHTML =
         `<option value="">
-            Select an event
+            Select Event
         </option>` +
+        events.map(event => `
+            <option value="${event.id}">
+                ${esc(event.title)}
+            </option>
+        `).join("");
 
+
+    /*
+     * Preserve selected event if possible.
+     */
+
+    if (
+        currentValue &&
+        events.some(
+            event =>
+                String(event.id) ===
+                String(currentValue)
+        )
+    ) {
+
+        select.value =
+            currentValue;
+
+    } else if (events.length) {
+
+        select.value =
+            String(events[0].id);
+    }
+}
+
+
+/* =========================================================
+   UPDATE EVENT SELECT
+   ========================================================= */
+
+function populateEditEventSelect() {
+
+    const select =
+        $("editEventSelect");
+
+
+    if (!select) {
+        return;
+    }
+
+
+    const currentValue =
+        select.value;
+
+
+    select.innerHTML =
+        `<option value="">
+            Select Event
+        </option>` +
         events.map(event => {
 
             const date =
-                formatDate(event.eventDate);
+                formatDate(
+                    event.eventDate
+                );
+
 
             return `
                 <option value="${event.id}">
@@ -854,14 +994,30 @@ function populateEditEventSelect() {
             `;
 
         }).join("");
+
+
+    /*
+     * Keep the current selection if it still exists.
+     */
+
+    if (
+        currentValue &&
+        events.some(
+            event =>
+                String(event.id) ===
+                String(currentValue)
+        )
+    ) {
+
+        select.value =
+            currentValue;
+    }
 }
 
 
-/*
- * =========================
- * LOAD EVENT FOR EDITING
- * =========================
- */
+/* =========================================================
+   LOAD EVENT INTO UPDATE FORM
+   ========================================================= */
 
 function loadEventForEdit(eventId) {
 
@@ -878,8 +1034,9 @@ function loadEventForEdit(eventId) {
 
 
     const event =
-        events.find(item =>
-            Number(item.id) === id
+        events.find(
+            item =>
+                Number(item.id) === id
         );
 
 
@@ -894,29 +1051,31 @@ function loadEventForEdit(eventId) {
     }
 
 
-    /*
-     * Populate form
-     */
-
     if ($("editEventTitle")) {
+
         $("editEventTitle").value =
             event.title || "";
     }
 
 
     if ($("editEventDescription")) {
+
         $("editEventDescription").value =
             event.description || "";
     }
 
 
     if ($("editEventDate")) {
+
         $("editEventDate").value =
-            toDateTimeLocal(event.eventDate);
+            toDateTimeLocal(
+                event.eventDate
+            );
     }
 
 
     if ($("editEventVenue")) {
+
         $("editEventVenue").value =
             event.venue || "";
     }
@@ -929,162 +1088,291 @@ function loadEventForEdit(eventId) {
             event.clubId ||
             "";
 
+
         $("editEventClub").value =
             String(clubId);
     }
 
 
     /*
-     * Reset notification options
-     * whenever another event is selected.
+     * Default notification setting.
      */
 
     if ($("notifyStudents")) {
-        $("notifyStudents").checked = true;
+
+        $("notifyStudents").checked =
+            true;
     }
 
+
+    /*
+     * Email is optional.
+     * Keep it OFF by default.
+     */
 
     if ($("sendEmail")) {
-        $("sendEmail").checked = false;
+
+        $("sendEmail").checked =
+            false;
     }
 }
 
 
-/*
- * =========================
- * DATE FORMAT FOR EDIT FORM
- * =========================
- */
-
-function toDateTimeLocal(value) {
-
-    if (!value) {
-        return "";
-    }
-
-
-    const date =
-        new Date(value);
-
-
-    if (Number.isNaN(date.getTime())) {
-
-        /*
-         * If backend already returns:
-         * 2026-10-10T18:30
-         */
-
-        if (
-            typeof value === "string" &&
-            value.length >= 16
-        ) {
-            return value.substring(0, 16);
-        }
-
-        return "";
-    }
-
-
-    const year =
-        date.getFullYear();
-
-    const month =
-        String(
-            date.getMonth() + 1
-        ).padStart(2, "0");
-
-    const day =
-        String(
-            date.getDate()
-        ).padStart(2, "0");
-
-    const hours =
-        String(
-            date.getHours()
-        ).padStart(2, "0");
-
-    const minutes =
-        String(
-            date.getMinutes()
-        ).padStart(2, "0");
-
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-
-/*
- * =========================
- * CLEAR UPDATE EVENT FORM
- * =========================
- */
+/* =========================================================
+   CLEAR UPDATE EVENT FORM
+   ========================================================= */
 
 function clearEditEventForm(
     clearSelect = true
 ) {
 
-    if (clearSelect && $("editEventSelect")) {
-        $("editEventSelect").value = "";
+    if (
+        clearSelect &&
+        $("editEventSelect")
+    ) {
+
+        $("editEventSelect").value =
+            "";
     }
 
 
     if ($("editEventTitle")) {
-        $("editEventTitle").value = "";
+
+        $("editEventTitle").value =
+            "";
     }
 
 
     if ($("editEventDescription")) {
-        $("editEventDescription").value = "";
+
+        $("editEventDescription").value =
+            "";
     }
 
 
     if ($("editEventDate")) {
-        $("editEventDate").value = "";
+
+        $("editEventDate").value =
+            "";
     }
 
 
     if ($("editEventVenue")) {
-        $("editEventVenue").value = "";
+
+        $("editEventVenue").value =
+            "";
     }
 
 
     if ($("editEventClub")) {
-        $("editEventClub").value = "";
+
+        $("editEventClub").value =
+            "";
     }
 
 
     if ($("notifyStudents")) {
-        $("notifyStudents").checked = true;
+
+        $("notifyStudents").checked =
+            false;
     }
 
 
     if ($("sendEmail")) {
-        $("sendEmail").checked = false;
+
+        $("sendEmail").checked =
+            false;
     }
 }
 
 
-/*
- * =========================
- * UPDATE EVENT FORM
- * =========================
- */
+/* =========================================================
+   UPDATE EVENT
+   ========================================================= */
 
-$("editEventForm")?.addEventListener(
-    "submit",
-    async function (event) {
+async function updateEvent(eventId) {
 
-        event.preventDefault();
+    const id =
+        eventId ||
+        $("editEventSelect")?.value;
 
 
-        const eventId =
-            $("editEventSelect")?.value;
+    if (!id) {
+
+        showToast(
+            "Please select an event to update.",
+            "error"
+        );
+
+        return;
+    }
 
 
-        if (!eventId) {
+    const title =
+        $("editEventTitle")
+            ?.value
+            .trim() || "";
+
+
+    const description =
+        $("editEventDescription")
+            ?.value
+            .trim() || "";
+
+
+    const eventDate =
+        $("editEventDate")
+            ?.value || "";
+
+
+    const venue =
+        $("editEventVenue")
+            ?.value
+            .trim() || "";
+
+
+    const clubId =
+        Number(
+            $("editEventClub")
+                ?.value || 0
+        );
+
+
+    const notifyStudents =
+        $("notifyStudents")
+            ?.checked || false;
+
+
+    const sendEmail =
+        $("sendEmail")
+            ?.checked || false;
+
+
+    /*
+     * VALIDATION
+     */
+
+    if (!title) {
+
+        showToast(
+            "Event title is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!eventDate) {
+
+        showToast(
+            "Event date is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!venue) {
+
+        showToast(
+            "Event venue is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!clubId) {
+
+        showToast(
+            "Please select a club.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * REQUEST BODY
+     */
+
+    const payload = {
+
+        title,
+
+        description,
+
+        eventDate,
+
+        venue,
+
+        clubId,
+
+        notifyStudents,
+
+        sendEmail
+    };
+
+
+    const form =
+        $("editEventForm");
+
+
+    const submitButton =
+        form?.querySelector(
+            'button[type="submit"]'
+        );
+
+
+    if (submitButton) {
+
+        submitButton.disabled =
+            true;
+
+        submitButton.dataset.originalText =
+            submitButton.textContent;
+
+        submitButton.textContent =
+            "Updating...";
+    }
+
+
+    try {
+
+        console.log(
+            "Updating event:",
+            id
+        );
+
+        console.log(
+            "Update payload:",
+            payload
+        );
+
+
+        const response =
+            await api(
+                `/api/events/${id}`,
+                "PUT",
+                payload
+            );
+
+
+        console.log(
+            "Update event response:",
+            response
+        );
+
+
+        if (!response.ok) {
 
             showToast(
-                "Please select an event to update.",
+                response.data?.message ||
+                `Failed to update event. HTTP ${response.status}`,
                 "error"
             );
 
@@ -1092,551 +1380,1054 @@ $("editEventForm")?.addEventListener(
         }
 
 
-        const title =
-            $("editEventTitle")?.value.trim() || "";
+        const message =
+            response.data?.message ||
+            "Event updated successfully.";
 
-        const description =
-            $("editEventDescription")?.value.trim() || "";
 
-        const eventDate =
-            $("editEventDate")?.value || "";
-
-        const venue =
-            $("editEventVenue")?.value.trim() || "";
-
-        const clubId =
+        const notifiedStudents =
             Number(
-                $("editEventClub")?.value || 0
+                response.data?.notifiedStudents ||
+                0
             );
 
-        const notifyStudents =
-            $("notifyStudents")?.checked || false;
 
-        const sendEmail =
-            $("sendEmail")?.checked || false;
+        let successMessage =
+            message;
+
+
+        if (notifyStudents) {
+
+            successMessage +=
+                ` ${notifiedStudents} registered student(s) notified.`;
+
+        } else {
+
+            successMessage +=
+                " No student notifications were sent.";
+        }
+
+
+        showToast(
+            successMessage,
+            "success"
+        );
 
 
         /*
-         * Validation
+         * Reload event data.
          */
 
-        if (!title) {
-
-            showToast(
-                "Event title is required.",
-                "error"
-            );
-
-            return;
-        }
+        await loadAdminEvents();
 
 
-        if (!eventDate) {
-
-            showToast(
-                "Event date is required.",
-                "error"
-            );
-
-            return;
-        }
+        populateAttendanceEvents();
 
 
-        if (!venue) {
-
-            showToast(
-                "Event venue is required.",
-                "error"
-            );
-
-            return;
-        }
+        await loadEvents();
 
 
-        if (!clubId) {
-
-            showToast(
-                "Please select a club.",
-                "error"
-            );
-
-            return;
-        }
+        await loadStats();
 
 
-        const payload = {
-
-            title:
-                title,
-
-            description:
-                description,
-
-            eventDate:
-                eventDate,
-
-            venue:
-                venue,
-
-            clubId:
-                clubId,
-
-            notifyStudents:
-                notifyStudents,
-
-            sendEmail:
-                sendEmail
-        };
+        await loadEventRegistrations();
 
 
         /*
-         * Prevent double submission
+         * Keep updated event selected.
          */
 
-        const submitButton =
-            this.querySelector(
-                'button[type="submit"]'
-            );
+        if ($("editEventSelect")) {
 
+            $("editEventSelect").value =
+                String(id);
+
+            loadEventForEdit(id);
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Update event error:",
+            error
+        );
+
+
+        showToast(
+            "Unable to update event.",
+            "error"
+        );
+
+
+    } finally {
 
         if (submitButton) {
-            submitButton.disabled = true;
+
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                submitButton.dataset.originalText ||
+                "Update Event";
         }
-
-
-        try {
-
-            const response =
-                await api(
-                    `/api/events/${eventId}`,
-                    "PUT",
-                    payload
-                );
-
-
-            const message =
-                response.data?.message ||
-                (
-                    response.ok
-                        ? "Event updated successfully."
-                        : "Failed to update event."
-                );
-
-
-            if (!response.ok) {
-
-                showToast(
-                    message,
-                    "error"
-                );
-
-                return;
-            }
-
-
-            const notifiedStudents =
-                Number(
-                    response.data?.notifiedStudents || 0
-                );
-
-
-            let successMessage =
-                message;
-
-
-            if (notifyStudents) {
-
-                successMessage +=
-                    ` ${notifiedStudents} registered student(s) notified.`;
-
-            } else {
-
-                successMessage +=
-                    " No student notifications were sent.";
-            }
-
-
-            showToast(
-                successMessage,
-                "success"
-            );
-
-
-            /*
-             * Reload all affected data
-             */
-
-            await loadAdminEvents();
-
-            populateAttendanceEvents();
-
-            await loadEvents();
-
-            await loadStats();
-
-            await loadEventRegistrations();
-
-            /*
-             * Keep updated event selected and
-             * reload its latest values.
-             */
-
-            if ($("editEventSelect")) {
-
-                $("editEventSelect").value =
-                    String(eventId);
-
-                loadEventForEdit(eventId);
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Update event error:",
-                error
-            );
-
-            showToast(
-                "Unable to update event.",
-                "error"
-            );
-
-        } finally {
-
-            if (submitButton) {
-                submitButton.disabled = false;
-            }
-        }
-
     }
-);
+}
 
 
-/*
- * =========================
- * CLUB MEMBERS TABLE
- * =========================
- */
+/* =========================================================
+   CREATE CLUB
+   ========================================================= */
+
+async function createClub() {
+
+    const name =
+        $("clubName")
+            ?.value
+            .trim() || "";
+
+
+    const description =
+        $("clubDescription")
+            ?.value
+            .trim() || "";
+
+
+    if (!name) {
+
+        showToast(
+            "Club name is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!description) {
+
+        showToast(
+            "Club description is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * Your current backend Club entity supports
+     * name + description.
+     *
+     * Category and coordinator are retained in
+     * the UI but are not sent because the backend
+     * model currently does not require them.
+     */
+
+    const payload = {
+
+        name,
+
+        description
+    };
+
+
+    const response =
+        await api(
+            "/api/clubs",
+            "POST",
+            payload
+        );
+
+
+    if (!response.ok) {
+
+        showToast(
+            response.data?.message ||
+            "Unable to create club.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    showToast(
+        "Club created successfully.",
+        "success"
+    );
+
+
+    $("createClubForm")?.reset();
+
+
+    await loadClubs();
+
+    await loadStats();
+}
+
+
+/* =========================================================
+   CREATE EVENT
+   ========================================================= */
+
+async function createEvent() {
+
+    const title =
+        $("eventTitle")
+            ?.value
+            .trim() || "";
+
+
+    const eventDate =
+        $("eventDate")
+            ?.value || "";
+
+
+    const venue =
+        $("eventVenue")
+            ?.value
+            .trim() || "";
+
+
+    const clubId =
+        Number(
+            $("eventClub")
+                ?.value || 0
+        );
+
+
+    const description =
+        $("eventDescription")
+            ?.value
+            .trim() || "";
+
+
+    if (!title) {
+
+        showToast(
+            "Event title is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!eventDate) {
+
+        showToast(
+            "Event date is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!venue) {
+
+        showToast(
+            "Event venue is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!clubId) {
+
+        showToast(
+            "Please select a club.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!description) {
+
+        showToast(
+            "Event description is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const payload = {
+
+        title,
+
+        description,
+
+        eventDate,
+
+        venue,
+
+        clubId
+    };
+
+
+    const response =
+        await api(
+            "/api/events",
+            "POST",
+            payload
+        );
+
+
+    if (!response.ok) {
+
+        showToast(
+            response.data?.message ||
+            "Unable to create event.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    showToast(
+        "Event created successfully.",
+        "success"
+    );
+
+
+    $("createEventForm")?.reset();
+
+
+    await loadAdminEvents();
+
+    populateAttendanceEvents();
+
+    await loadEvents();
+
+    await loadStats();
+
+    await loadEventRegistrations();
+}
+
+
+/* =========================================================
+   REGISTER FOR EVENT
+   ========================================================= */
+
+async function registerForEvent(eventId) {
+
+    const response =
+        await api(
+            `/api/events/${eventId}/register`,
+            "POST"
+        );
+
+
+    if (!response.ok) {
+
+        showToast(
+            response.data?.message ||
+            "Unable to register for event.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    showToast(
+        response.data?.message ||
+        "Registered for event successfully.",
+        "success"
+    );
+
+
+    await loadMyEvents();
+
+    await loadNotificationCount();
+}
+
+
+/* =========================================================
+   MY CLUBS
+   ========================================================= */
+
+async function loadMyClubs() {
+
+    const response =
+        await api(
+            "/api/clubs/mine"
+        );
+
+
+    if (!response.ok) {
+        return;
+    }
+
+
+    const myClubs =
+        Array.isArray(response.data)
+            ? response.data
+            : [];
+
+
+    const container =
+        $("myClubsList");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!myClubs.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                You have not joined any clubs yet.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        myClubs.map(club => `
+
+            <div class="club-card">
+
+                <h3>
+                    ${esc(club.name)}
+                </h3>
+
+                <p>
+                    ${esc(
+                        club.description ||
+                        "No description available."
+                    )}
+                </p>
+
+            </div>
+
+        `).join("");
+}
+
+
+/* =========================================================
+   MY EVENTS
+   ========================================================= */
+
+async function loadMyEvents() {
+
+    const response =
+        await api(
+            "/api/events/mine"
+        );
+
+
+    if (!response.ok) {
+        return;
+    }
+
+
+    const myEvents =
+        Array.isArray(response.data)
+            ? response.data
+            : [];
+
+
+    const container =
+        $("myEventsList");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!myEvents.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                You have not registered for any events.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        myEvents.map(registration => {
+
+            const event =
+                registration.event ||
+                registration;
+
+
+            const date =
+                formatDate(
+                    event.eventDate
+                );
+
+
+            let attendance =
+                "Not Marked";
+
+
+            if (
+                registration.attended === true
+            ) {
+
+                attendance =
+                    "Present";
+
+            } else if (
+                registration.attended === false
+            ) {
+
+                attendance =
+                    "Absent";
+            }
+
+
+            return `
+
+                <div class="event-card">
+
+                    <h3>
+                        ${esc(event.title)}
+                    </h3>
+
+                    <p>
+                        ${esc(
+                            event.description ||
+                            ""
+                        )}
+                    </p>
+
+                    <div class="event-meta">
+
+                        <span>
+                            📅 ${esc(date.full)}
+                        </span>
+
+                        <span>
+                            📍 ${esc(
+                                event.venue ||
+                                "N/A"
+                            )}
+                        </span>
+
+                        <span>
+                            Attendance:
+                            ${esc(attendance)}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
+}
+
+
+/* =========================================================
+   CLUB MEMBERS
+   ========================================================= */
 
 async function loadClubMembers() {
 
     const response =
-        await api("/api/admin/club-members");
+        await api(
+            "/api/admin/club-members"
+        );
+
 
     if (!response.ok) {
 
-        if ($("clubMembersTable")) {
-            $("clubMembersTable").innerHTML =
-                tableMessage(
-                    5,
-                    "Unable to load club members."
-                );
-        }
+        console.warn(
+            "Unable to load club members:",
+            response
+        );
 
         return;
     }
+
 
     clubMembers =
         Array.isArray(response.data)
             ? response.data
             : [];
 
+
     renderClubMembers();
 }
 
 
+/* =========================================================
+   RENDER CLUB MEMBERS
+   ========================================================= */
+
 function renderClubMembers() {
 
+    const tbody =
+        $("clubMembersTableBody");
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    if (!clubMembers.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No club members found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        clubMembers.map(member => {
+
+            const user =
+                member.user || {};
+
+
+            const club =
+                member.club || {};
+
+
+            return `
+
+                <tr>
+
+                    <td>
+                        ${esc(
+                            user.name ||
+                            member.userName ||
+                            "N/A"
+                        )}
+                    </td>
+
+                    <td>
+                        ${esc(
+                            user.studentId ||
+                            user.rollNumber ||
+                            member.studentId ||
+                            "N/A"
+                        )}
+                    </td>
+
+                    <td>
+                        ${esc(
+                            user.department ||
+                            user.branch ||
+                            member.department ||
+                            "N/A"
+                        )}
+                    </td>
+
+                    <td>
+                        ${esc(
+                            club.name ||
+                            member.clubName ||
+                            "N/A"
+                        )}
+                    </td>
+
+                    <td>
+                        ${esc(
+                            member.joinedAt ||
+                            "N/A"
+                        )}
+                    </td>
+
+                </tr>
+
+            `;
+
+        }).join("");
+}
+
+
+/* =========================================================
+   CLUB MEMBER SEARCH
+   ========================================================= */
+
+function filterClubMembers() {
+
+    const input =
+        $("clubSearch");
+
+
+    if (!input) {
+        return;
+    }
+
+
     const search =
-        ($("clubSearch")?.value || "")
-            .toLowerCase()
-            .trim();
+        input.value
+            .trim()
+            .toLowerCase();
+
+
+    if (!search) {
+
+        renderClubMembers();
+
+        return;
+    }
 
 
     const filtered =
         clubMembers.filter(member => {
 
+            const user =
+                member.user || {};
+
+
+            const club =
+                member.club || {};
+
+
             const text = [
 
-                member.studentName,
-                member.email,
-                member.collegeStudentId,
-                member.department,
-                member.clubName
+                user.name,
 
-            ].join(" ").toLowerCase();
+                user.email,
+
+                user.studentId,
+
+                user.rollNumber,
+
+                user.department,
+
+                user.branch,
+
+                member.userName,
+
+                member.studentId,
+
+                member.department,
+
+                member.clubName,
+
+                club.name
+
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
 
             return text.includes(search);
         });
 
 
-    if (!filtered.length) {
-
-        if ($("clubMembersTable")) {
-            $("clubMembersTable").innerHTML =
-                tableMessage(
-                    5,
-                    search
-                        ? "No matching club members."
-                        : "No students have joined a club yet."
-                );
-        }
-
-        return;
-    }
+    const original =
+        clubMembers;
 
 
-    if ($("clubMembersTable")) {
+    clubMembers =
+        filtered;
 
-        $("clubMembersTable").innerHTML =
-            filtered.map(member => `
+    renderClubMembers();
 
-                <tr>
-
-                    <td>
-
-                        <div class="table-person">
-
-                            <div class="mini-avatar">
-                                ${initials(member.studentName)}
-                            </div>
-
-                            <div>
-
-                                <strong>
-                                    ${esc(member.studentName)}
-                                </strong>
-
-                                <small>
-                                    ${esc(member.email)}
-                                </small>
-
-                            </div>
-
-                        </div>
-
-                    </td>
-
-
-                    <td>
-                        ${esc(
-                            member.collegeStudentId ||
-                            "—"
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${esc(
-                            member.department ||
-                            "—"
-                        )}
-                    </td>
-
-
-                    <td>
-
-                        <span class="club-pill">
-                            ${esc(member.clubName)}
-                        </span>
-
-                    </td>
-
-
-                    <td>
-                        ${esc(member.joinedAt || "—")}
-                    </td>
-
-                </tr>
-
-            `).join("");
-    }
+    clubMembers =
+        original;
 }
 
 
-/*
- * =========================
- * EVENT REGISTRATION TABLE
- * =========================
- */
+/* =========================================================
+   EVENT REGISTRATIONS
+   ========================================================= */
 
 async function loadEventRegistrations() {
 
     const response =
-        await api("/api/admin/event-registrations");
+        await api(
+            "/api/admin/event-registrations"
+        );
+
 
     if (!response.ok) {
 
-        if ($("eventRegistrationsTable")) {
-            $("eventRegistrationsTable").innerHTML =
-                tableMessage(
-                    6,
-                    "Unable to load event registrations."
-                );
-        }
+        console.warn(
+            "Unable to load event registrations:",
+            response
+        );
 
         return;
     }
+
 
     eventRegistrations =
         Array.isArray(response.data)
             ? response.data
             : [];
 
+
     renderEventRegistrations();
 }
 
 
+/* =========================================================
+   RENDER EVENT REGISTRATIONS
+   ========================================================= */
+
 function renderEventRegistrations() {
 
-    const search =
-        ($("registrationSearch")?.value || "")
-            .toLowerCase()
-            .trim();
+    const tbody =
+        $("eventRegistrationsTableBody");
 
 
-    const filtered =
-        eventRegistrations.filter(reg => {
-
-            const text = [
-
-                reg.studentName,
-                reg.email,
-                reg.collegeStudentId,
-                reg.department,
-                reg.eventTitle,
-                reg.clubName
-
-            ].join(" ").toLowerCase();
-
-            return text.includes(search);
-        });
+    if (!tbody) {
+        return;
+    }
 
 
-    if (!filtered.length) {
+    if (!eventRegistrations.length) {
 
-        if ($("eventRegistrationsTable")) {
-            $("eventRegistrationsTable").innerHTML =
-                tableMessage(
-                    6,
-                    search
-                        ? "No matching registrations."
-                        : "No students have registered for events yet."
-                );
-        }
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    No event registrations found.
+                </td>
+            </tr>
+        `;
 
         return;
     }
 
 
-    if ($("eventRegistrationsTable")) {
+    tbody.innerHTML =
+        eventRegistrations.map(
+            registration => {
 
-        $("eventRegistrationsTable").innerHTML =
-            filtered.map(reg => `
-
-                <tr>
-
-                    <td>
-
-                        <div class="table-person">
-
-                            <div class="mini-avatar">
-                                ${initials(reg.studentName)}
-                            </div>
-
-                            <div>
-
-                                <strong>
-                                    ${esc(reg.studentName)}
-                                </strong>
-
-                                <small>
-                                    ${esc(reg.email)}
-                                </small>
-
-                            </div>
-
-                        </div>
-
-                    </td>
+                const user =
+                    registration.user || {};
 
 
-                    <td>
-                        ${esc(
-                            reg.collegeStudentId ||
-                            "—"
-                        )}
-                    </td>
+                const event =
+                    registration.event || {};
 
 
-                    <td>
-                        ${esc(
-                            reg.department ||
-                            "—"
-                        )}
-                    </td>
+                const club =
+                    event.club || {};
 
 
-                    <td>
+                let attendance =
+                    "Not Marked";
 
-                        <strong>
-                            ${esc(reg.eventTitle)}
-                        </strong>
 
-                        <small class="table-sub">
+                if (
+                    registration.attended === true
+                ) {
+
+                    attendance =
+                        "Present";
+
+                } else if (
+                    registration.attended === false
+                ) {
+
+                    attendance =
+                        "Absent";
+                }
+
+
+                return `
+
+                    <tr>
+
+                        <td>
                             ${esc(
-                                formatDate(
-                                    reg.eventDate
-                                ).full
+                                user.name ||
+                                registration.userName ||
+                                "N/A"
                             )}
-                        </small>
+                        </td>
 
-                    </td>
+                        <td>
+                            ${esc(
+                                user.studentId ||
+                                user.rollNumber ||
+                                registration.studentId ||
+                                "N/A"
+                            )}
+                        </td>
 
+                        <td>
+                            ${esc(
+                                user.department ||
+                                user.branch ||
+                                registration.department ||
+                                "N/A"
+                            )}
+                        </td>
 
-                    <td>
-                        ${esc(reg.clubName || "—")}
-                    </td>
+                        <td>
+                            ${esc(
+                                event.title ||
+                                registration.eventTitle ||
+                                "N/A"
+                            )}
+                        </td>
 
+                        <td>
+                            ${esc(
+                                club.name ||
+                                registration.clubName ||
+                                "N/A"
+                            )}
+                        </td>
 
-                    <td>
-                        ${statusBadge(
-                            reg.attendanceStatus ||
-                            "NOT_MARKED"
-                        )}
-                    </td>
+                        <td>
+                            ${esc(attendance)}
+                        </td>
 
-                </tr>
+                    </tr>
 
-            `).join("");
-    }
+                `;
+
+            }
+        ).join("");
 }
 
 
-/*
- * =========================
- * ATTENDANCE
- * =========================
- */
+/* =========================================================
+   EVENT REGISTRATION SEARCH
+   ========================================================= */
+
+function filterEventRegistrations() {
+
+    const input =
+        $("registrationSearch");
+
+
+    if (!input) {
+        return;
+    }
+
+
+    const search =
+        input.value
+            .trim()
+            .toLowerCase();
+
+
+    if (!search) {
+
+        renderEventRegistrations();
+
+        return;
+    }
+
+
+    const filtered =
+        eventRegistrations.filter(
+            registration => {
+
+                const user =
+                    registration.user || {};
+
+
+                const event =
+                    registration.event || {};
+
+
+                const club =
+                    event.club || {};
+
+
+                const text = [
+
+                    user.name,
+
+                    user.email,
+
+                    user.studentId,
+
+                    user.rollNumber,
+
+                    user.department,
+
+                    user.branch,
+
+                    registration.userName,
+
+                    registration.eventTitle,
+
+                    registration.clubName,
+
+                    event.title,
+
+                    club.name
+
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+
+
+                return text.includes(search);
+            }
+        );
+
+
+    const original =
+        eventRegistrations;
+
+
+    eventRegistrations =
+        filtered;
+
+    renderEventRegistrations();
+
+    eventRegistrations =
+        original;
+}
+
+
+/* =========================================================
+   LOAD ATTENDANCE
+   ========================================================= */
 
 async function loadAttendance() {
 
-    const select =
+    const eventSelect =
         $("attendanceEvent");
 
-    if (!select || !select.value) {
 
-        if ($("attendanceSummary")) {
-            $("attendanceSummary").innerHTML = "";
-        }
+    if (!eventSelect) {
+        return;
+    }
 
-        if ($("attendanceTable")) {
-            $("attendanceTable").innerHTML =
-                tableMessage(
-                    6,
-                    "Select an event to manage attendance."
-                );
-        }
+
+    const eventId =
+        eventSelect.value;
+
+
+    if (!eventId) {
+
+        attendanceRecords =
+            [];
+
+        renderAttendance();
 
         return;
     }
@@ -1644,181 +2435,318 @@ async function loadAttendance() {
 
     const response =
         await api(
-            `/api/admin/events/${select.value}/attendance`
+            `/api/admin/events/${eventId}/attendance`
         );
 
 
     if (!response.ok) {
 
-        if ($("attendanceTable")) {
-            $("attendanceTable").innerHTML =
-                tableMessage(
-                    6,
-                    "Unable to load attendance."
-                );
-        }
+        showToast(
+            response.data?.message ||
+            "Unable to load attendance.",
+            "error"
+        );
 
         return;
     }
 
 
-    const data =
-        response.data;
-
-
-    if ($("attendanceSummary")) {
-
-        $("attendanceSummary").innerHTML = `
-
-            ${attendanceSummaryCard(
-                "Total Registered",
-                data.total,
-                "total"
-            )}
-
-            ${attendanceSummaryCard(
-                "Present",
-                data.present,
-                "present"
-            )}
-
-            ${attendanceSummaryCard(
-                "Absent",
-                data.absent,
-                "absent"
-            )}
-
-            ${attendanceSummaryCard(
-                "Not Marked",
-                data.notMarked,
-                "pending"
-            )}
-
-        `;
-    }
-
-
-    const students =
-        Array.isArray(data.students)
-            ? data.students
+    attendanceRecords =
+        Array.isArray(response.data)
+            ? response.data
             : [];
 
 
-    if (!students.length) {
+    renderAttendance();
+}
 
-        if ($("attendanceTable")) {
-            $("attendanceTable").innerHTML =
-                tableMessage(
-                    6,
-                    "No students are registered for this event yet."
-                );
-        }
+
+/* =========================================================
+   RENDER ATTENDANCE
+   ========================================================= */
+
+function renderAttendance() {
+
+    const tbody =
+        $("attendanceTableBody");
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    updateAttendanceSummary();
+
+
+    if (!attendanceRecords.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    No registrations found for this event.
+                </td>
+            </tr>
+        `;
 
         return;
     }
 
 
-    if ($("attendanceTable")) {
+    tbody.innerHTML =
+        attendanceRecords.map(item => {
 
-        $("attendanceTable").innerHTML =
-            students.map(student => `
+            const user =
+                item.user || {};
+
+
+            let status =
+                "Not Marked";
+
+
+            let statusClass =
+                "";
+
+
+            if (
+                item.attended === true
+            ) {
+
+                status =
+                    "Present";
+
+                statusClass =
+                    "status-present";
+
+            } else if (
+                item.attended === false
+            ) {
+
+                status =
+                    "Absent";
+
+                statusClass =
+                    "status-absent";
+            }
+
+
+            return `
 
                 <tr>
 
                     <td>
-
-                        <div class="table-person">
-
-                            <div class="mini-avatar">
-                                ${initials(student.studentName)}
-                            </div>
-
-                            <div>
-
-                                <strong>
-                                    ${esc(
-                                        student.studentName
-                                    )}
-                                </strong>
-
-                            </div>
-
-                        </div>
-
+                        ${esc(
+                            user.name ||
+                            item.userName ||
+                            "N/A"
+                        )}
                     </td>
-
-
-                    <td>
-                        ${esc(student.email)}
-                    </td>
-
 
                     <td>
                         ${esc(
-                            student.studentId ||
-                            "—"
+                            user.email ||
+                            item.userEmail ||
+                            "N/A"
                         )}
                     </td>
-
 
                     <td>
                         ${esc(
-                            student.department ||
-                            "—"
+                            user.studentId ||
+                            user.rollNumber ||
+                            item.studentId ||
+                            "N/A"
                         )}
                     </td>
 
-
                     <td>
-                        ${statusBadge(
-                            student.attendanceStatus
+                        ${esc(
+                            user.department ||
+                            user.branch ||
+                            item.department ||
+                            "N/A"
                         )}
                     </td>
 
+                    <td>
+
+                        <span
+                            class="${statusClass}"
+                        >
+                            ${esc(status)}
+                        </span>
+
+                    </td>
 
                     <td>
 
-                        <div class="attendance-actions">
-
-                            <button
-                                class="attendance-btn present"
-                                onclick="markAttendance(
-                                    ${student.registrationId},
-                                    true
-                                )"
-                            >
-                                ✓ Present
-                            </button>
+                        <button
+                            class="btn btn-success btn-sm"
+                            onclick="setAttendance(
+                                ${item.id},
+                                true
+                            )"
+                        >
+                            Present
+                        </button>
 
 
-                            <button
-                                class="attendance-btn absent"
-                                onclick="markAttendance(
-                                    ${student.registrationId},
-                                    false
-                                )"
-                            >
-                                ✕ Absent
-                            </button>
+                        <button
+                            class="btn btn-danger btn-sm"
+                            onclick="setAttendance(
+                                ${item.id},
+                                false
+                            )"
+                        >
+                            Absent
+                        </button>
 
-                        </div>
+
+                        <button
+                            class="btn btn-outline btn-sm"
+                            onclick="setAttendance(
+                                ${item.id},
+                                null
+                            )"
+                        >
+                            Clear
+                        </button>
 
                     </td>
 
                 </tr>
 
-            `).join("");
-    }
+            `;
+
+        }).join("");
 }
 
 
-/*
- * =========================
- * MARK ATTENDANCE
- * =========================
- */
+/* =========================================================
+   ATTENDANCE SUMMARY
+   ========================================================= */
 
-async function markAttendance(
+function updateAttendanceSummary() {
+
+    const container =
+        $("attendanceSummary");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    let present = 0;
+
+    let absent = 0;
+
+    let notMarked = 0;
+
+
+    attendanceRecords.forEach(item => {
+
+        if (
+            item.attended === true
+        ) {
+
+            present++;
+
+        } else if (
+            item.attended === false
+        ) {
+
+            absent++;
+
+        } else {
+
+            notMarked++;
+        }
+    });
+
+
+    const total =
+        attendanceRecords.length;
+
+
+    container.innerHTML = `
+
+        <div class="attendance-summary-item">
+
+            <span>
+                Total
+            </span>
+
+            <strong>
+                ${total}
+            </strong>
+
+        </div>
+
+
+        <div class="attendance-summary-item">
+
+            <span>
+                Present
+            </span>
+
+            <strong>
+                ${present}
+            </strong>
+
+        </div>
+
+
+        <div class="attendance-summary-item">
+
+            <span>
+                Absent
+            </span>
+
+            <strong>
+                ${absent}
+            </strong>
+
+        </div>
+
+
+        <div class="attendance-summary-item">
+
+            <span>
+                Not Marked
+            </span>
+
+            <strong>
+                ${notMarked}
+            </strong>
+
+        </div>
+
+    `;
+}
+
+
+/* =========================================================
+   ATTENDANCE EVENT CHANGE
+   ========================================================= */
+
+if ($("attendanceEvent")) {
+
+    $("attendanceEvent").addEventListener(
+        "change",
+        async function () {
+
+            await loadAttendance();
+        }
+    );
+}
+
+
+/* =========================================================
+   SET ATTENDANCE
+   ========================================================= */
+
+async function setAttendance(
     registrationId,
     attended
 ) {
@@ -1828,819 +2756,691 @@ async function markAttendance(
             `/api/admin/attendance/${registrationId}`,
             "PUT",
             {
-                attended: attended
+                attended
             }
         );
 
 
-    const message =
-        response.data?.message ||
-        "Unable to update attendance.";
-
-
-    showToast(
-        message,
-        response.ok ? "success" : "error"
-    );
-
-
-    if (response.ok) {
-
-        await loadAttendance();
-
-        await loadStats();
-
-        await loadEventRegistrations();
-    }
-}
-
-
-/*
- * =========================
- * CREATE CLUB
- * =========================
- */
-
-$("clubForm")?.addEventListener(
-    "submit",
-    async function (event) {
-
-        event.preventDefault();
-
-
-        const response =
-            await api(
-                "/api/clubs",
-                "POST",
-                {
-                    name:
-                        $("clubName").value.trim(),
-
-                    category:
-                        $("clubCategory").value.trim(),
-
-                    coordinator:
-                        $("clubCoordinator").value.trim(),
-
-                    description:
-                        $("clubDescription").value.trim()
-                }
-            );
-
+    if (!response.ok) {
 
         showToast(
             response.data?.message ||
-            (
-                response.ok
-                    ? "Club created successfully."
-                    : "Unable to create club."
-            ),
-            response.ok ? "success" : "error"
+            "Unable to update attendance.",
+            "error"
         );
 
-
-        if (response.ok) {
-
-            this.reset();
-
-            await loadClubs();
-
-            await loadStats();
-        }
-
-    }
-);
-
-
-/*
- * =========================
- * CREATE EVENT
- * =========================
- */
-
-$("eventForm")?.addEventListener(
-    "submit",
-    async function (event) {
-
-        event.preventDefault();
-
-
-        const clubId =
-            Number($("eventClub").value);
-
-
-        const response =
-            await api(
-                "/api/events",
-                "POST",
-                {
-                    title:
-                        $("eventTitle").value.trim(),
-
-                    description:
-                        $("eventDescription").value.trim(),
-
-                    eventDate:
-                        $("eventDate").value,
-
-                    venue:
-                        $("eventVenue").value.trim(),
-
-                    clubId:
-                        clubId
-                }
-            );
-
-
-        showToast(
-            response.data?.message ||
-            (
-                response.ok
-                    ? "Event created successfully."
-                    : "Unable to create event."
-            ),
-            response.ok ? "success" : "error"
-        );
-
-
-        if (response.ok) {
-
-            this.reset();
-
-            await loadAdminEvents();
-
-            populateAttendanceEvents();
-
-            await loadEvents();
-
-            await loadStats();
-        }
-
-    }
-);
-
-
-/*
- * =========================
- * UPDATE EVENT SELECT
- * =========================
- */
-
-$("editEventSelect")?.addEventListener(
-    "change",
-    function () {
-
-        loadEventForEdit(
-            this.value
-        );
-
-    }
-);
-
-
-/*
- * =========================
- * CLEAR UPDATE EVENT
- * =========================
- */
-
-$("clearEditEvent")?.addEventListener(
-    "click",
-    function () {
-
-        clearEditEventForm();
-
-    }
-);
-
-
-/*
- * =========================
- * SEARCH
- * =========================
- */
-
-$("clubSearch")?.addEventListener(
-    "input",
-    renderClubMembers
-);
-
-
-$("registrationSearch")?.addEventListener(
-    "input",
-    renderEventRegistrations
-);
-
-
-/*
- * =========================
- * ATTENDANCE EVENT SELECT
- * =========================
- */
-
-$("attendanceEvent")?.addEventListener(
-    "change",
-    loadAttendance
-);
-
-
-/*
- * =========================
- * REFRESH ADMIN
- * =========================
- */
-
-$("refreshAdmin")?.addEventListener(
-    "click",
-    async function () {
-
-        this.disabled = true;
-
-        await loadAdminDashboard();
-
-        this.disabled = false;
-
-        showToast(
-            "Dashboard refreshed.",
-            "success"
-        );
-    }
-);
-
-
-/*
- * =========================
- * LOGOUT
- * =========================
- */
-
-$("logout")?.addEventListener(
-    "click",
-    async function () {
-
-        await api(
-            "/api/auth/logout",
-            "POST"
-        );
-
-        window.location.href = "/";
-    }
-);
-
-
-/*
- * =========================
- * NOTIFICATIONS
- * =========================
- */
-
-async function loadNotificationCount() {
-
-    try {
-
-        const response =
-            await fetch(
-                "/api/notifications/unread-count"
-            );
-
-        if (!response.ok) {
-            return;
-        }
-
-        const data =
-            await response.json();
-
-        const badge =
-            $("notificationBadge");
-
-        if (!badge) {
-            return;
-        }
-
-        if (data.count > 0) {
-
-            badge.textContent =
-                data.count;
-
-            badge.style.display =
-                "inline-flex";
-
-        } else {
-
-            badge.style.display =
-                "none";
-        }
-
-    } catch (error) {
-
-        console.error(
-            "Notification count error:",
-            error
-        );
-    }
-}
-
-
-async function loadNotifications() {
-
-    const list =
-        $("notificationList");
-
-    if (!list) {
         return;
     }
 
-    try {
 
-        const response =
-            await fetch(
-                "/api/notifications"
-            );
+    showToast(
+        "Attendance updated successfully.",
+        "success"
+    );
 
-        if (!response.ok) {
 
-            list.innerHTML =
-                "<p>Unable to load notifications.</p>";
+    await loadAttendance();
 
-            return;
+    await loadEventRegistrations();
+
+    await loadStats();
+}
+
+
+/* =========================================================
+   NOTIFICATION COUNT
+   ========================================================= */
+
+async function loadNotificationCount() {
+
+    const response =
+        await api(
+            "/api/notifications/count"
+        );
+
+
+    if (!response.ok) {
+        return;
+    }
+
+
+    const count =
+        Number(
+            response.data?.count || 0
+        );
+
+
+    const badge =
+        $("notificationBadge");
+
+
+    if (!badge) {
+        return;
+    }
+
+
+    if (count > 0) {
+
+        badge.textContent =
+            count > 99
+                ? "99+"
+                : String(count);
+
+        badge.style.display =
+            "inline-flex";
+
+    } else {
+
+        badge.textContent =
+            "0";
+
+        badge.style.display =
+            "none";
+    }
+}
+
+
+/* =========================================================
+   LOAD NOTIFICATIONS
+   ========================================================= */
+
+async function loadNotifications() {
+
+    const response =
+        await api(
+            "/api/notifications"
+        );
+
+
+    if (!response.ok) {
+
+        const container =
+            $("notificationList");
+
+
+        if (container) {
+
+            container.innerHTML = `
+                <div class="notification-empty">
+                    Unable to load notifications.
+                </div>
+            `;
         }
 
-        const notifications =
-            await response.json();
+        return;
+    }
 
 
-        if (!notifications.length) {
+    const notifications =
+        Array.isArray(response.data)
+            ? response.data
+            : [];
 
-            list.innerHTML =
-                `
-                    <div class="no-notifications">
-                        No notifications
+
+    const container =
+        $("notificationList");
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!notifications.length) {
+
+        container.innerHTML = `
+            <div class="notification-empty">
+                No notifications.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        notifications.map(notification => {
+
+            const readClass =
+                notification.read
+                    ? "read"
+                    : "unread";
+
+
+            return `
+
+                <div
+                    class="notification-item ${readClass}"
+                    data-id="${notification.id}"
+                    onclick="markNotificationRead(
+                        ${notification.id}
+                    )"
+                >
+
+                    <div class="notification-title">
+
+                        ${esc(
+                            notification.title ||
+                            "Notification"
+                        )}
+
                     </div>
-                `;
-
-            return;
-        }
 
 
-        list.innerHTML =
-            notifications.map(
-                notification => {
+                    <div class="notification-message">
 
-                    const unreadClass =
-                        notification.read
-                            ? ""
-                            : "unread";
+                        ${esc(
+                            notification.message ||
+                            ""
+                        )}
 
-
-                    return `
-                        <div
-                            class="notification-item ${unreadClass}"
-                            onclick="markNotificationRead(
-                                ${notification.id}
-                            )"
-                        >
-
-                            <div
-                                class="notification-title"
-                            >
-                                ${escapeNotificationText(
-                                    notification.title
-                                )}
-                            </div>
+                    </div>
 
 
-                            <div
-                                class="notification-message"
-                            >
-                                ${escapeNotificationText(
-                                    notification.message
-                                )}
-                            </div>
+                    <div class="notification-date">
 
+                        ${esc(
+                            formatDate(
+                                notification.createdAt
+                            ).full
+                        )}
 
-                            <div
-                                class="notification-date"
-                            >
-                                ${formatNotificationDate(
-                                    notification.createdAt
-                                )}
-                            </div>
+                    </div>
 
-                        </div>
-                    `;
+                </div>
 
-                }
-            ).join("");
+            `;
 
-    } catch (error) {
-
-        console.error(
-            "Notification loading error:",
-            error
-        );
-    }
+        }).join("");
 }
 
 
-async function markNotificationRead(id) {
-
-    try {
-
-        const response =
-            await fetch(
-                `/api/notifications/${id}/read`,
-                {
-                    method: "PUT"
-                }
-            );
-
-
-        if (!response.ok) {
-            return;
-        }
-
-
-        await loadNotifications();
-
-        await loadNotificationCount();
-
-    } catch (error) {
-
-        console.error(
-            "Mark notification error:",
-            error
-        );
-    }
-}
-
-
-async function markAllNotificationsRead() {
-
-    try {
-
-        const response =
-            await fetch(
-                "/api/notifications/read-all",
-                {
-                    method: "PUT"
-                }
-            );
-
-
-        if (!response.ok) {
-            return;
-        }
-
-
-        await loadNotifications();
-
-        await loadNotificationCount();
-
-    } catch (error) {
-
-        console.error(
-            "Mark all notifications error:",
-            error
-        );
-    }
-}
-
+/* =========================================================
+   NOTIFICATION TOGGLE
+   ========================================================= */
 
 async function toggleNotifications() {
 
     const panel =
         $("notificationPanel");
 
+
     if (!panel) {
         return;
     }
 
 
-    notificationPanelOpen =
-        !notificationPanelOpen;
+    const isOpen =
+        panel.classList.contains("show");
 
 
-    if (notificationPanelOpen) {
+    if (isOpen) {
 
-        panel.style.display =
-            "block";
-
-        await loadNotifications();
-
-        await loadNotificationCount();
-
-    } else {
-
-        panel.style.display =
-            "none";
-    }
-}
-
-
-function formatNotificationDate(value) {
-
-    if (!value) {
-        return "";
-    }
-
-    try {
-
-        return new Date(value)
-            .toLocaleString();
-
-    } catch {
-
-        return value;
-    }
-}
-
-
-function escapeNotificationText(value) {
-
-    if (!value) {
-        return "";
-    }
-
-    return String(value)
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-}
-
-
-/*
- * =========================
- * HELPERS
- * =========================
- */
-
-function formatDate(value) {
-
-    if (!value) {
-
-        return {
-            day: "--",
-            month: "---",
-            full: "Date not specified"
-        };
-    }
-
-
-    const date =
-        new Date(value);
-
-
-    if (Number.isNaN(date.getTime())) {
-
-        return {
-            day: "--",
-            month: "---",
-            full: String(value)
-        };
-    }
-
-
-    return {
-
-        day:
-            String(
-                date.getDate()
-            ).padStart(2, "0"),
-
-        month:
-            date.toLocaleString(
-                "en-US",
-                {
-                    month: "short"
-                }
-            ).toUpperCase(),
-
-        full:
-            date.toLocaleString(
-                "en-IN",
-                {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                }
-            )
-    };
-}
-
-
-function initials(name) {
-
-    if (!name) {
-        return "U";
-    }
-
-    return name
-        .split(" ")
-        .slice(0, 2)
-        .map(word =>
-            word.charAt(0)
-        )
-        .join("")
-        .toUpperCase();
-}
-
-
-function esc(value) {
-
-    return String(
-        value ?? ""
-    ).replace(
-        /[&<>'"]/g,
-        character => ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            "'": "&#39;",
-            '"': "&quot;"
-        })[character]
-    );
-}
-
-
-function tableMessage(
-    columns,
-    message
-) {
-
-    return `
-        <tr>
-            <td
-                colspan="${columns}"
-                class="table-empty"
-            >
-                ${esc(message)}
-            </td>
-        </tr>
-    `;
-}
-
-
-function emptyCard(
-    title,
-    description
-) {
-
-    return `
-
-        <div class="empty-card">
-
-            <div class="empty-icon">
-                ✦
-            </div>
-
-            <h3>
-                ${esc(title)}
-            </h3>
-
-            <p>
-                ${esc(description)}
-            </p>
-
-        </div>
-
-    `;
-}
-
-
-function errorCard(message) {
-
-    return `
-
-        <div class="empty-card">
-
-            <div class="empty-icon">
-                !
-            </div>
-
-            <h3>
-                Something went wrong
-            </h3>
-
-            <p>
-                ${esc(message)}
-            </p>
-
-        </div>
-
-    `;
-}
-
-
-function attendanceSummaryCard(
-    title,
-    value,
-    type
-) {
-
-    return `
-
-        <div class="attendance-stat ${type}">
-
-            <span>
-                ${esc(title)}
-            </span>
-
-            <strong>
-                ${Number(value || 0)}
-            </strong>
-
-        </div>
-
-    `;
-}
-
-
-function showToast(
-    message,
-    type = "success"
-) {
-
-    let toast =
-        document.getElementById(
-            "toast"
-        );
-
-
-    if (!toast) {
-
-        toast =
-            document.createElement(
-                "div"
-            );
-
-        toast.id = "toast";
-
-        document.body.appendChild(
-            toast
-        );
-    }
-
-
-    toast.textContent =
-        message;
-
-    toast.className =
-        `toast ${type} show`;
-
-
-    setTimeout(() => {
-
-        toast.classList.remove(
+        panel.classList.remove(
             "show"
         );
 
-    }, 3000);
+        panel.style.display =
+            "none";
+
+        return;
+    }
+
+
+    await loadNotifications();
+
+
+    panel.classList.add(
+        "show"
+    );
+
+    panel.style.display =
+        "block";
 }
 
 
-/*
- * =========================
- * NOTIFICATION COUNT
- * =========================
- */
+/* =========================================================
+   MARK NOTIFICATION READ
+   ========================================================= */
+
+async function markNotificationRead(
+    notificationId
+) {
+
+    const response =
+        await api(
+            `/api/notifications/${notificationId}/read`,
+            "PUT"
+        );
+
+
+    if (!response.ok) {
+        return;
+    }
+
+
+    await loadNotifications();
+
+    await loadNotificationCount();
+}
+
+
+/* =========================================================
+   MARK ALL NOTIFICATIONS READ
+   ========================================================= */
+
+async function markAllNotificationsRead() {
+
+    const response =
+        await api(
+            "/api/notifications/read-all",
+            "PUT"
+        );
+
+
+    if (!response.ok) {
+
+        showToast(
+            response.data?.message ||
+            "Unable to mark notifications as read.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    await loadNotifications();
+
+    await loadNotificationCount();
+}
+
+
+/* =========================================================
+   CLOSE NOTIFICATION PANEL
+   ========================================================= */
 
 document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+    "click",
+    function (event) {
 
-        loadNotificationCount();
+        const panel =
+            $("notificationPanel");
 
-        setInterval(
-            loadNotificationCount,
-            30000
-        );
+        const button =
+            $("notificationBtn");
+
+
+        if (!panel || !button) {
+            return;
+        }
+
+
+        if (
+            !panel.contains(event.target) &&
+            !button.contains(event.target)
+        ) {
+
+            panel.classList.remove(
+                "show"
+            );
+
+            panel.style.display =
+                "none";
+        }
     }
 );
 
 
-/*
- * =========================
- * START APPLICATION
- * =========================
- */
+/* =========================================================
+   LOGOUT
+   ========================================================= */
 
-loadDashboard();
+async function logout() {
+
+    try {
+
+        await api(
+            "/api/auth/logout",
+            "POST"
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "Logout request failed:",
+            error
+        );
+    }
+
+
+    window.location.href =
+        "/login.html";
+}
+
+
+/* =========================================================
+   REFRESH ADMIN
+   ========================================================= */
+
+async function refreshAdminDashboard() {
+
+    if (
+        !currentUser ||
+        String(currentUser.role)
+            .toUpperCase() !== "ADMIN"
+    ) {
+        return;
+    }
+
+
+    showToast(
+        "Refreshing dashboard...",
+        "success"
+    );
+
+
+    await loadAdminDashboard();
+
+
+    showToast(
+        "Dashboard refreshed.",
+        "success"
+    );
+}
+
+
+/* =========================================================
+   EVENT FORM LISTENERS
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* ================================================
+           CREATE CLUB
+           ================================================ */
+
+        const createClubForm =
+            $("createClubForm");
+
+
+        if (createClubForm) {
+
+            createClubForm.addEventListener(
+                "submit",
+                async function (event) {
+
+                    event.preventDefault();
+
+                    await createClub();
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           CREATE EVENT
+           ================================================ */
+
+        const createEventForm =
+            $("createEventForm");
+
+
+        if (createEventForm) {
+
+            createEventForm.addEventListener(
+                "submit",
+                async function (event) {
+
+                    event.preventDefault();
+
+                    await createEvent();
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           UPDATE EVENT
+           ================================================ */
+
+        const editEventForm =
+            $("editEventForm");
+
+
+        if (editEventForm) {
+
+            editEventForm.addEventListener(
+                "submit",
+                async function (event) {
+
+                    event.preventDefault();
+
+
+                    const eventId =
+                        $("editEventSelect")
+                            ?.value;
+
+
+                    if (!eventId) {
+
+                        showToast(
+                            "Please select an event to update.",
+                            "error"
+                        );
+
+                        return;
+                    }
+
+
+                    await updateEvent(
+                        eventId
+                    );
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           EVENT SELECT
+           ================================================ */
+
+        const editEventSelect =
+            $("editEventSelect");
+
+
+        if (editEventSelect) {
+
+            editEventSelect.addEventListener(
+                "change",
+                function () {
+
+                    loadEventForEdit(
+                        this.value
+                    );
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           CLEAR UPDATE FORM
+           ================================================ */
+
+        const clearEditEvent =
+            $("clearEditEvent");
+
+
+        if (clearEditEvent) {
+
+            clearEditEvent.addEventListener(
+                "click",
+                function () {
+
+                    clearEditEventForm();
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           REFRESH ADMIN
+           ================================================ */
+
+        const refreshAdmin =
+            $("refreshAdmin");
+
+
+        if (refreshAdmin) {
+
+            refreshAdmin.addEventListener(
+                "click",
+                async function () {
+
+                    await refreshAdminDashboard();
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           LOGOUT
+           ================================================ */
+
+        const logoutBtn =
+            $("logoutBtn");
+
+
+        if (logoutBtn) {
+
+            logoutBtn.addEventListener(
+                "click",
+                async function () {
+
+                    await logout();
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           NOTIFICATIONS
+           ================================================ */
+
+        const notificationBtn =
+            $("notificationBtn");
+
+
+        if (notificationBtn) {
+
+            notificationBtn.addEventListener(
+                "click",
+                async function (event) {
+
+                    event.stopPropagation();
+
+                    await toggleNotifications();
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           MARK ALL NOTIFICATIONS READ
+           ================================================ */
+
+        const markAll =
+            $("markAllNotificationsRead");
+
+
+        if (markAll) {
+
+            markAll.addEventListener(
+                "click",
+                async function (event) {
+
+                    event.stopPropagation();
+
+                    await markAllNotificationsRead();
+                }
+            );
+        }
+
+
+
+        /* ================================================
+           CLUB SEARCH
+           ================================================ */
+
+        const clubSearch =
+            $("clubSearch");
+
+
+        if (clubSearch) {
+
+            clubSearch.addEventListener(
+                "input",
+                filterClubMembers
+            );
+        }
+
+
+
+        /* ================================================
+           REGISTRATION SEARCH
+           ================================================ */
+
+        const registrationSearch =
+            $("registrationSearch");
+
+
+        if (registrationSearch) {
+
+            registrationSearch.addEventListener(
+                "input",
+                filterEventRegistrations
+            );
+        }
+
+    }
+);
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async function () {
+
+        try {
+
+            await loadDashboard();
+
+        } catch (error) {
+
+            console.error(
+                "Dashboard initialization error:",
+                error
+            );
+
+
+            showToast(
+                "Unable to load dashboard.",
+                "error"
+            );
+        }
+    }
+);
