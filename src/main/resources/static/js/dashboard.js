@@ -8,7 +8,6 @@ let eventRegistrations = [];
 
 let notificationPanelOpen = false;
 
-
 const $ = (id) => document.getElementById(id);
 
 
@@ -304,6 +303,10 @@ async function loadClubs() {
         : [];
 
 
+    /*
+     * CREATE EVENT CLUB SELECT
+     */
+
     if ($("eventClub")) {
 
         $("eventClub").innerHTML =
@@ -316,6 +319,27 @@ async function loadClubs() {
             `).join("");
     }
 
+
+    /*
+     * UPDATE EVENT CLUB SELECT
+     */
+
+    if ($("editEventClub")) {
+
+        $("editEventClub").innerHTML =
+            `<option value="">Select club</option>` +
+
+            clubs.map(club => `
+                <option value="${club.id}">
+                    ${esc(club.name)}
+                </option>
+            `).join("");
+    }
+
+
+    /*
+     * CLUB CARDS
+     */
 
     if ($("clubs")) {
 
@@ -773,19 +797,39 @@ async function loadAdminEvents() {
         await api("/api/admin/events");
 
     if (!response.ok) {
+
+        showToast(
+            "Unable to load admin events.",
+            "error"
+        );
+
         return;
     }
 
     events = Array.isArray(response.data)
         ? response.data
         : [];
+
+
+    /*
+     * IMPORTANT:
+     * Populate the Update Event dropdown
+     */
+
+    populateEditEventSelect();
 }
 
 
-function populateAttendanceEvents() {
+/*
+ * =========================
+ * UPDATE EVENT SELECT
+ * =========================
+ */
+
+function populateEditEventSelect() {
 
     const select =
-        $("attendanceEvent");
+        $("editEventSelect");
 
     if (!select) {
         return;
@@ -797,19 +841,475 @@ function populateAttendanceEvents() {
             Select an event
         </option>` +
 
-        events.map(event => `
-            <option value="${event.id}">
-                ${esc(event.title)}
-            </option>
-        `).join("");
+        events.map(event => {
+
+            const date =
+                formatDate(event.eventDate);
+
+            return `
+                <option value="${event.id}">
+                    ${esc(event.title)}
+                    — ${esc(date.full)}
+                </option>
+            `;
+
+        }).join("");
+}
 
 
-    if (events.length) {
+/*
+ * =========================
+ * LOAD EVENT FOR EDITING
+ * =========================
+ */
 
-        select.value =
-            String(events[0].id);
+function loadEventForEdit(eventId) {
+
+    if (!eventId) {
+
+        clearEditEventForm(false);
+
+        return;
+    }
+
+
+    const id =
+        Number(eventId);
+
+
+    const event =
+        events.find(item =>
+            Number(item.id) === id
+        );
+
+
+    if (!event) {
+
+        showToast(
+            "Event details could not be found.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * Populate form
+     */
+
+    if ($("editEventTitle")) {
+        $("editEventTitle").value =
+            event.title || "";
+    }
+
+
+    if ($("editEventDescription")) {
+        $("editEventDescription").value =
+            event.description || "";
+    }
+
+
+    if ($("editEventDate")) {
+        $("editEventDate").value =
+            toDateTimeLocal(event.eventDate);
+    }
+
+
+    if ($("editEventVenue")) {
+        $("editEventVenue").value =
+            event.venue || "";
+    }
+
+
+    if ($("editEventClub")) {
+
+        const clubId =
+            event.club?.id ||
+            event.clubId ||
+            "";
+
+        $("editEventClub").value =
+            String(clubId);
+    }
+
+
+    /*
+     * Reset notification options
+     * whenever another event is selected.
+     */
+
+    if ($("notifyStudents")) {
+        $("notifyStudents").checked = true;
+    }
+
+
+    if ($("sendEmail")) {
+        $("sendEmail").checked = false;
     }
 }
+
+
+/*
+ * =========================
+ * DATE FORMAT FOR EDIT FORM
+ * =========================
+ */
+
+function toDateTimeLocal(value) {
+
+    if (!value) {
+        return "";
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (Number.isNaN(date.getTime())) {
+
+        /*
+         * If backend already returns:
+         * 2026-10-10T18:30
+         */
+
+        if (
+            typeof value === "string" &&
+            value.length >= 16
+        ) {
+            return value.substring(0, 16);
+        }
+
+        return "";
+    }
+
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    const hours =
+        String(
+            date.getHours()
+        ).padStart(2, "0");
+
+    const minutes =
+        String(
+            date.getMinutes()
+        ).padStart(2, "0");
+
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+
+/*
+ * =========================
+ * CLEAR UPDATE EVENT FORM
+ * =========================
+ */
+
+function clearEditEventForm(
+    clearSelect = true
+) {
+
+    if (clearSelect && $("editEventSelect")) {
+        $("editEventSelect").value = "";
+    }
+
+
+    if ($("editEventTitle")) {
+        $("editEventTitle").value = "";
+    }
+
+
+    if ($("editEventDescription")) {
+        $("editEventDescription").value = "";
+    }
+
+
+    if ($("editEventDate")) {
+        $("editEventDate").value = "";
+    }
+
+
+    if ($("editEventVenue")) {
+        $("editEventVenue").value = "";
+    }
+
+
+    if ($("editEventClub")) {
+        $("editEventClub").value = "";
+    }
+
+
+    if ($("notifyStudents")) {
+        $("notifyStudents").checked = true;
+    }
+
+
+    if ($("sendEmail")) {
+        $("sendEmail").checked = false;
+    }
+}
+
+
+/*
+ * =========================
+ * UPDATE EVENT FORM
+ * =========================
+ */
+
+$("editEventForm")?.addEventListener(
+    "submit",
+    async function (event) {
+
+        event.preventDefault();
+
+
+        const eventId =
+            $("editEventSelect")?.value;
+
+
+        if (!eventId) {
+
+            showToast(
+                "Please select an event to update.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        const title =
+            $("editEventTitle")?.value.trim() || "";
+
+        const description =
+            $("editEventDescription")?.value.trim() || "";
+
+        const eventDate =
+            $("editEventDate")?.value || "";
+
+        const venue =
+            $("editEventVenue")?.value.trim() || "";
+
+        const clubId =
+            Number(
+                $("editEventClub")?.value || 0
+            );
+
+        const notifyStudents =
+            $("notifyStudents")?.checked || false;
+
+        const sendEmail =
+            $("sendEmail")?.checked || false;
+
+
+        /*
+         * Validation
+         */
+
+        if (!title) {
+
+            showToast(
+                "Event title is required.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!eventDate) {
+
+            showToast(
+                "Event date is required.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!venue) {
+
+            showToast(
+                "Event venue is required.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!clubId) {
+
+            showToast(
+                "Please select a club.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        const payload = {
+
+            title:
+                title,
+
+            description:
+                description,
+
+            eventDate:
+                eventDate,
+
+            venue:
+                venue,
+
+            clubId:
+                clubId,
+
+            notifyStudents:
+                notifyStudents,
+
+            sendEmail:
+                sendEmail
+        };
+
+
+        /*
+         * Prevent double submission
+         */
+
+        const submitButton =
+            this.querySelector(
+                'button[type="submit"]'
+            );
+
+
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+
+
+        try {
+
+            const response =
+                await api(
+                    `/api/events/${eventId}`,
+                    "PUT",
+                    payload
+                );
+
+
+            const message =
+                response.data?.message ||
+                (
+                    response.ok
+                        ? "Event updated successfully."
+                        : "Failed to update event."
+                );
+
+
+            if (!response.ok) {
+
+                showToast(
+                    message,
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const notifiedStudents =
+                Number(
+                    response.data?.notifiedStudents || 0
+                );
+
+
+            let successMessage =
+                message;
+
+
+            if (notifyStudents) {
+
+                successMessage +=
+                    ` ${notifiedStudents} registered student(s) notified.`;
+
+            } else {
+
+                successMessage +=
+                    " No student notifications were sent.";
+            }
+
+
+            showToast(
+                successMessage,
+                "success"
+            );
+
+
+            /*
+             * Reload all affected data
+             */
+
+            await loadAdminEvents();
+
+            populateAttendanceEvents();
+
+            await loadEvents();
+
+            await loadStats();
+
+            await loadEventRegistrations();
+
+            /*
+             * Keep updated event selected and
+             * reload its latest values.
+             */
+
+            if ($("editEventSelect")) {
+
+                $("editEventSelect").value =
+                    String(eventId);
+
+                loadEventForEdit(eventId);
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Update event error:",
+                error
+            );
+
+            showToast(
+                "Unable to update event.",
+                "error"
+            );
+
+        } finally {
+
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+        }
+
+    }
+);
 
 
 /*
@@ -1482,6 +1982,40 @@ $("eventForm")?.addEventListener(
 
 /*
  * =========================
+ * UPDATE EVENT SELECT
+ * =========================
+ */
+
+$("editEventSelect")?.addEventListener(
+    "change",
+    function () {
+
+        loadEventForEdit(
+            this.value
+        );
+
+    }
+);
+
+
+/*
+ * =========================
+ * CLEAR UPDATE EVENT
+ * =========================
+ */
+
+$("clearEditEvent")?.addEventListener(
+    "click",
+    function () {
+
+        clearEditEventForm();
+
+    }
+);
+
+
+/*
+ * =========================
  * SEARCH
  * =========================
  */
@@ -1848,155 +2382,6 @@ function escapeNotificationText(value) {
             /'/g,
             "&#039;"
         );
-}
-
-
-/*
- * =========================
- * UPDATE EVENT
- * =========================
- */
-
-async function updateEvent(eventId) {
-
-    const notifyCheckbox =
-        $("notifyStudents");
-
-    const emailCheckbox =
-        $("sendEmail");
-
-
-    const payload = {
-
-        title:
-            $("eventTitle").value.trim(),
-
-        description:
-            $("eventDescription").value.trim(),
-
-        eventDate:
-            $("eventDate").value,
-
-        venue:
-            $("eventVenue").value.trim(),
-
-        clubId:
-            Number(
-                $("eventClub").value
-            ),
-
-        notifyStudents:
-            notifyCheckbox
-                ? notifyCheckbox.checked
-                : false,
-
-        sendEmail:
-            emailCheckbox
-                ? emailCheckbox.checked
-                : false
-    };
-
-
-    if (!payload.title) {
-
-        showToast(
-            "Event title is required.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (!payload.eventDate) {
-
-        showToast(
-            "Event date is required.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (!payload.venue) {
-
-        showToast(
-            "Event venue is required.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (!payload.clubId) {
-
-        showToast(
-            "Please select a club.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const response =
-        await api(
-            `/api/events/${eventId}`,
-            "PUT",
-            payload
-        );
-
-
-    const message =
-        response.data?.message ||
-        (
-            response.ok
-                ? "Event updated successfully."
-                : "Failed to update event."
-        );
-
-
-    if (!response.ok) {
-
-        showToast(
-            message,
-            "error"
-        );
-
-        return;
-    }
-
-
-    const notifiedStudents =
-        Number(
-            response.data?.notifiedStudents || 0
-        );
-
-
-    showToast(
-        message +
-        (
-            payload.notifyStudents
-                ? ` ${notifiedStudents} registered student(s) notified.`
-                : " No student notifications were sent."
-        ),
-        "success"
-    );
-
-
-    /*
-     * Refresh admin data after update
-     */
-
-    await loadAdminEvents();
-
-    populateAttendanceEvents();
-
-    await loadEvents();
-
-    await loadStats();
 }
 
 
