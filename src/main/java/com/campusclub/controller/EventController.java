@@ -36,11 +36,19 @@ public class EventController {
         this.notificationService = notificationService;
     }
 
+    // ------------------------------------------------
+    // GET ALL EVENTS
+    // ------------------------------------------------
+
     @GetMapping
     public List<Event> all() {
 
         return events.findAllByOrderByEventDateAsc();
     }
+
+    // ------------------------------------------------
+    // REQUEST DTO
+    // ------------------------------------------------
 
     public record EventRequest(
             String title,
@@ -73,6 +81,7 @@ public class EventController {
                 clubs.findById(r.clubId()).orElse(null);
 
         if (club == null) {
+
             return ResponseEntity
                     .badRequest()
                     .body(Map.of(
@@ -108,6 +117,7 @@ public class EventController {
                 events.findById(id).orElse(null);
 
         if (event == null) {
+
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body(Map.of(
@@ -129,10 +139,10 @@ public class EventController {
 
             changes.append(
                     "Title changed from '"
-                    + event.getTitle()
-                    + "' to '"
-                    + r.title()
-                    + "'.\n"
+                            + event.getTitle()
+                            + "' to '"
+                            + r.title()
+                            + "'.\n"
             );
         }
 
@@ -146,10 +156,10 @@ public class EventController {
 
             changes.append(
                     "Date changed from "
-                    + event.getEventDate()
-                    + " to "
-                    + r.eventDate()
-                    + ".\n"
+                            + event.getEventDate()
+                            + " to "
+                            + r.eventDate()
+                            + ".\n"
             );
         }
 
@@ -163,10 +173,10 @@ public class EventController {
 
             changes.append(
                     "Venue changed from '"
-                    + event.getVenue()
-                    + "' to '"
-                    + r.venue()
-                    + "'.\n"
+                            + event.getVenue()
+                            + "' to '"
+                            + r.venue()
+                            + "'.\n"
             );
         }
 
@@ -184,21 +194,18 @@ public class EventController {
         }
 
         // --------------------------------------------
-        // Update event
+        // Check club
         // --------------------------------------------
 
-        event.setTitle(r.title());
-        event.setDescription(r.description());
-        event.setEventDate(r.eventDate());
-        event.setVenue(r.venue());
+        Club newClub = null;
 
         if (r.clubId() != null) {
 
-            Club club =
+            newClub =
                     clubs.findById(r.clubId())
                             .orElse(null);
 
-            if (club == null) {
+            if (newClub == null) {
 
                 return ResponseEntity
                         .badRequest()
@@ -208,36 +215,98 @@ public class EventController {
                         ));
             }
 
-            event.setClub(club);
+            Long oldClubId =
+                    event.getClub() != null
+                            ? event.getClub().getId()
+                            : null;
+
+            if (!Objects.equals(
+                    oldClubId,
+                    r.clubId())) {
+
+                String oldClubName =
+                        event.getClub() != null
+                                ? event.getClub().getName()
+                                : "None";
+
+                changes.append(
+                        "Club changed from '"
+                                + oldClubName
+                                + "' to '"
+                                + newClub.getName()
+                                + "'.\n"
+                );
+            }
+        }
+
+        // --------------------------------------------
+        // Update event
+        // --------------------------------------------
+
+        event.setTitle(r.title());
+        event.setDescription(r.description());
+        event.setEventDate(r.eventDate());
+        event.setVenue(r.venue());
+
+        if (newClub != null) {
+            event.setClub(newClub);
         }
 
         Event savedEvent =
                 events.save(event);
 
         // --------------------------------------------
-        // Send notifications
+        // Notification result
         // --------------------------------------------
 
         int notifiedStudents = 0;
+        int emailsSent = 0;
+        int emailFailed = 0;
 
+        /*
+         * Notifications are sent only when:
+         *
+         * 1. Notify students checkbox is enabled
+         * 2. At least one event field actually changed
+         */
         if (r.notifyStudents()
                 && changes.length() > 0) {
 
-            notifiedStudents =
+            NotificationService.NotificationResult result =
                     notificationService
                             .notifyRegisteredStudents(
                                     savedEvent,
                                     changes.toString(),
                                     r.sendEmail()
                             );
+
+            notifiedStudents =
+                    result.notifiedStudents();
+
+            emailsSent =
+                    result.emailsSent();
+
+            emailFailed =
+                    result.emailFailed();
         }
+
+        // --------------------------------------------
+        // Response
+        // --------------------------------------------
 
         return ResponseEntity.ok(
                 Map.of(
                         "message",
                         "Event updated successfully",
+
                         "notifiedStudents",
-                        notifiedStudents
+                        notifiedStudents,
+
+                        "emailsSent",
+                        emailsSent,
+
+                        "emailFailed",
+                        emailFailed
                 )
         );
     }
@@ -267,6 +336,7 @@ public class EventController {
                 (Long) session.getAttribute("userId");
 
         if (userId == null) {
+
             return ResponseEntity
                     .status(401)
                     .build();

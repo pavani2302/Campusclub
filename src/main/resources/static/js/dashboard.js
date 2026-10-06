@@ -1136,7 +1136,6 @@ async function updateEvent(eventId) {
     const id =
         String(eventId || "").trim();
 
-
     if (!id) {
 
         showToast(
@@ -1146,7 +1145,6 @@ async function updateEvent(eventId) {
 
         return;
     }
-
 
     const title =
         $("editEventTitle")?.value.trim() || "";
@@ -1175,6 +1173,9 @@ async function updateEvent(eventId) {
             ? $("sendEmail").checked
             : false;
 
+    // --------------------------------------------
+    // Validation
+    // --------------------------------------------
 
     if (!title) {
 
@@ -1186,7 +1187,6 @@ async function updateEvent(eventId) {
         return;
     }
 
-
     if (!eventDate) {
 
         showToast(
@@ -1196,7 +1196,6 @@ async function updateEvent(eventId) {
 
         return;
     }
-
 
     if (!venue) {
 
@@ -1208,7 +1207,6 @@ async function updateEvent(eventId) {
         return;
     }
 
-
     if (!clubId) {
 
         showToast(
@@ -1219,6 +1217,9 @@ async function updateEvent(eventId) {
         return;
     }
 
+    // --------------------------------------------
+    // Request payload
+    // --------------------------------------------
 
     const payload = {
 
@@ -1237,6 +1238,19 @@ async function updateEvent(eventId) {
         sendEmail: sendEmail
     };
 
+    console.log(
+        "Updating event:",
+        id
+    );
+
+    console.log(
+        "Update payload:",
+        payload
+    );
+
+    // --------------------------------------------
+    // Update event
+    // --------------------------------------------
 
     const response =
         await api(
@@ -1245,100 +1259,161 @@ async function updateEvent(eventId) {
             payload
         );
 
+    console.log(
+        "Update response:",
+        response
+    );
 
-    const message =
-        response.data?.message ||
-        (
-            response.ok
-                ? "Event updated successfully."
-                : "Failed to update event."
-        );
-
+    // --------------------------------------------
+    // Handle failure
+    // --------------------------------------------
 
     if (!response.ok) {
 
         showToast(
-            message,
+            response.data?.message ||
+            "Failed to update event.",
             "error"
         );
 
         return;
     }
 
+    // --------------------------------------------
+    // Read notification/email results
+    // --------------------------------------------
 
     const notifiedStudents =
         Number(
             response.data?.notifiedStudents || 0
         );
 
+    const emailsSent =
+        Number(
+            response.data?.emailsSent || 0
+        );
+
+    const emailFailed =
+        Number(
+            response.data?.emailFailed || 0
+        );
 
     let toastMessage =
-        message;
+        response.data?.message ||
+        "Event updated successfully.";
 
+    // --------------------------------------------
+    // Student notification message
+    // --------------------------------------------
 
     if (notifyStudents) {
 
         toastMessage +=
             ` ${notifiedStudents} registered student(s) notified.`;
 
+        // ----------------------------------------
+        // Email message
+        // ----------------------------------------
+
+        if (sendEmail) {
+
+            if (emailsSent > 0) {
+
+                toastMessage +=
+                    ` ${emailsSent} email notification(s) sent successfully.`;
+            }
+
+            if (emailFailed > 0) {
+
+                toastMessage +=
+                    ` ${emailFailed} email notification(s) failed.`;
+            }
+
+            if (
+                emailsSent === 0 &&
+                emailFailed === 0
+            ) {
+
+                toastMessage +=
+                    " No emails were sent.";
+            }
+        }
     } else {
 
         toastMessage +=
             " No student notifications were sent.";
     }
 
+    // --------------------------------------------
+    // Show success
+    // --------------------------------------------
 
     showToast(
         toastMessage,
         "success"
     );
 
+    // --------------------------------------------
+    // Preserve selected event
+    // --------------------------------------------
 
-    /*
-     * Refresh events from backend.
-     */
+    selectedEditEventId = id;
+
+    // --------------------------------------------
+    // Refresh events
+    // --------------------------------------------
 
     await loadAdminEvents();
 
-
-    /*
-     * Refresh both event selectors.
-     */
+    // --------------------------------------------
+    // Refresh edit event selector
+    // --------------------------------------------
 
     populateEditEventSelect();
 
+    // --------------------------------------------
+    // Explicitly reload updated event
+    // --------------------------------------------
+
+    await loadEventForEdit(id);
+
+    // --------------------------------------------
+    // Refresh attendance event selector
+    // --------------------------------------------
+
     populateAttendanceEvents();
 
-
-    /*
-     * Reload public/student event cards.
-     */
+    // --------------------------------------------
+    // Refresh student events
+    // --------------------------------------------
 
     await loadEvents();
 
-
-    /*
-     * Reload admin registrations because
-     * event information may have changed.
-     */
+    // --------------------------------------------
+    // Refresh registrations
+    // --------------------------------------------
 
     await loadEventRegistrations();
 
-
-    /*
-     * Reload attendance for the selected event.
-     */
+    // --------------------------------------------
+    // Refresh attendance
+    // --------------------------------------------
 
     if ($("attendanceEvent")?.value) {
+
         await loadAttendance();
     }
 
-
-    /*
-     * Reload statistics.
-     */
+    // --------------------------------------------
+    // Refresh statistics
+    // --------------------------------------------
 
     await loadStats();
+
+    console.log(
+        "Event update completed successfully:",
+        id
+    );
 }
 
 
