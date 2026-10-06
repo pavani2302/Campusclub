@@ -23,10 +23,6 @@
 <body>
 
 
-<!-- =========================================================
-     TOP BAR
-     ========================================================= -->
-
 <header class="topbar">
 
     <div class="brand">
@@ -35,9 +31,6 @@
 
 
     <div class="topbar-right">
-
-
-        <!-- USER -->
 
         <div class="top-user">
 
@@ -64,17 +57,15 @@
         </div>
 
 
-        <!-- NOTIFICATIONS -->
-
         <div class="notification-wrapper">
 
             <button
                 id="notificationBtn"
                 class="notification-btn"
+                onclick="toggleNotifications()"
                 type="button"
                 title="Notifications"
             >
-
                 🔔
 
                 <span
@@ -91,6 +82,7 @@
             <div
                 id="notificationPanel"
                 class="notification-panel"
+                style="display:none;"
             >
 
                 <div class="notification-header">
@@ -101,8 +93,8 @@
 
 
                     <button
-                        id="markAllNotificationsRead"
                         type="button"
+                        onclick="markAllNotificationsRead()"
                     >
                         Mark all read
                     </button>
@@ -111,11 +103,7 @@
 
 
                 <div id="notificationList">
-
-                    <div class="notification-empty">
-                        Loading...
-                    </div>
-
+                    Loading...
                 </div>
 
             </div>
@@ -123,10 +111,8 @@
         </div>
 
 
-        <!-- LOGOUT -->
-
         <button
-            id="logoutBtn"
+            id="logout"
             class="btn btn-outline"
             type="button"
         >
@@ -139,16 +125,12 @@
 
 
 
-<!-- =========================================================
-     MAIN
-     ========================================================= -->
-
 <main class="dashboard-container">
 
 
-    <!-- =====================================================
-         HERO
-         ===================================================== -->
+    <!-- ============================= -->
+    <!-- HERO -->
+    <!-- ============================= -->
 
     <section class="dashboard-hero">
 
@@ -191,9 +173,9 @@
 
 
 
-    <!-- =====================================================
-         PROFILE
-         ===================================================== -->
+    <!-- ============================= -->
+    <!-- PROFILE -->
+    <!-- ============================= -->
 
     <section class="profile-card">
 
@@ -274,17 +256,15 @@
 
 
 
-    <!-- =====================================================
-         ADMIN DASHBOARD
-         ===================================================== -->
+    <!-- ============================= -->
+    <!-- ADMIN DASHBOARD -->
+    <!-- ============================= -->
 
     <section
         id="adminPanel"
-        class="admin-only"
+        class="hidden"
     >
 
-
-        <!-- ADMIN HEADER -->
 
         <div class="section-heading">
 
@@ -320,125 +300,20 @@
 
 
 
-        <!-- =================================================
-             ADMIN STATS
-             ================================================= -->
+        <!-- ============================= -->
+        <!-- ADMIN STATS -->
+        <!-- ============================= -->
 
         <div
             id="stats"
             class="stats-grid"
-        >
-
-            <div class="stat-card">
-
-                <span>
-                    Students
-                </span>
-
-                <strong id="statStudents">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <span>
-                    Clubs
-                </span>
-
-                <strong id="statClubs">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <span>
-                    Events
-                </span>
-
-                <strong id="statEvents">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <span>
-                    Memberships
-                </span>
-
-                <strong id="statMemberships">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <span>
-                    Registrations
-                </span>
-
-                <strong id="statRegistrations">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <span>
-                    Present
-                </span>
-
-                <strong id="statPresent">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <span>
-                    Absent
-                </span>
-
-                <strong id="statAbsent">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <span>
-                    Not Marked
-                </span>
-
-                <strong id="statNotMarked">
-                    0
-                </strong>
-
-            </div>
-
-        </div>
+        ></div>
 
 
 
-        <!-- =================================================
-             CREATE CLUB + CREATE EVENT
-             ================================================= -->
+        <!-- ============================= -->
+        <!-- CREATE CLUB + CREATE EVENT -->
+        <!-- ============================= -->
 
         <div class="admin-create-grid">
 
@@ -470,7 +345,8 @@
                 </div>
 
 
-                <form id="createClubForm">
+
+                <form id="clubForm">
 
 
                     <label>
@@ -486,6 +362,7 @@
                     </label>
 
 
+
                     <label>
 
                         Category
@@ -496,6 +373,7 @@
                         >
 
                     </label>
+
 
 
                     <label>
@@ -510,6 +388,7 @@
                     </label>
 
 
+
                     <label>
 
                         Description
@@ -521,6 +400,7 @@
                         ></textarea>
 
                     </label>
+
 
 
                     <button
@@ -564,7 +444,8 @@
                 </div>
 
 
-                <form id="createEventForm">
+
+                <form id="eventForm">
 
 
                     <label>
@@ -580,6 +461,7 @@
                     </label>
 
 
+
                     <label>
 
                         Event Date & Time
@@ -593,6 +475,7 @@
                     </label>
 
 
+
                     <label>
 
                         Venue
@@ -604,6 +487,7 @@
                         >
 
                     </label>
+
 
 
                     <label>
@@ -624,6 +508,7 @@
                     </label>
 
 
+
                     <label>
 
                         Description
@@ -635,6 +520,7 @@
                         ></textarea>
 
                     </label>
+
 
 
                     <button
@@ -653,9 +539,9 @@
 
 
 
-        <!-- =================================================
-             UPDATE EVENT
-             ================================================= -->
+        <!-- ============================= -->
+        <!-- EDIT EVENT -->
+        <!-- ============================= -->
 
         <div class="panel large-panel">
 
@@ -674,9 +560,8 @@
 
 
                     <p>
-                        Select an existing event, update its
-                        details and optionally notify registered
-                        students.
+                        Update event details and optionally
+                        notify registered students.
                     </p>
 
                 </div>
@@ -696,15 +581,17 @@
             </div>
 
 
-            <form id="editEventForm">
+
+            <form
+                id="editEventForm"
+            >
 
 
                 <div class="admin-create-grid">
 
 
-                    <!-- LEFT -->
-
                     <div>
+
 
                         <label>
 
@@ -712,11 +599,11 @@
 
                             <input
                                 id="editEventTitle"
-                                placeholder="Event title"
                                 required
                             >
 
                         </label>
+
 
 
                         <label>
@@ -732,25 +619,25 @@
                         </label>
 
 
+
                         <label>
 
                             Venue
 
                             <input
                                 id="editEventVenue"
-                                placeholder="Event venue"
                                 required
                             >
 
                         </label>
 
+
                     </div>
 
 
 
-                    <!-- RIGHT -->
-
                     <div>
+
 
                         <label>
 
@@ -770,17 +657,18 @@
                         </label>
 
 
+
                         <label>
 
                             Description
 
                             <textarea
                                 id="editEventDescription"
-                                placeholder="Describe the event..."
                                 required
                             ></textarea>
 
                         </label>
+
 
                     </div>
 
@@ -789,15 +677,15 @@
 
 
 
-                <!-- NOTIFICATIONS -->
+                <!-- NOTIFICATION OPTIONS -->
 
                 <div
                     style="
-                        margin-top:20px;
-                        padding:16px;
-                        border:1px solid var(--border);
-                        border-radius:12px;
-                        background:var(--bg);
+                        margin-top: 20px;
+                        padding: 16px;
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        background: var(--bg);
                     "
                 >
 
@@ -834,6 +722,7 @@
                         </label>
 
 
+
                         <label
                             style="
                                 display:flex;
@@ -845,6 +734,7 @@
                             <input
                                 type="checkbox"
                                 id="sendEmail"
+                                checked
                             >
 
                             Send email notification
@@ -856,8 +746,6 @@
                 </div>
 
 
-
-                <!-- UPDATE BUTTONS -->
 
                 <div
                     style="
@@ -877,8 +765,8 @@
 
                     <button
                         type="button"
-                        id="clearEditEvent"
                         class="btn btn-outline"
+                        onclick="clearEditEventForm()"
                     >
                         Clear
                     </button>
@@ -892,9 +780,9 @@
 
 
 
-        <!-- =================================================
-             CLUB MEMBERS
-             ================================================= -->
+        <!-- ============================= -->
+        <!-- CLUB MEMBERS -->
+        <!-- ============================= -->
 
         <div class="panel large-panel">
 
@@ -927,6 +815,7 @@
                 >
 
             </div>
+
 
 
             <div class="table-wrap">
@@ -963,18 +852,8 @@
 
 
                     <tbody
-                        id="clubMembersTableBody"
-                    >
-
-                        <tr>
-
-                            <td colspan="5">
-                                Loading club members...
-                            </td>
-
-                        </tr>
-
-                    </tbody>
+                        id="clubMembersTable"
+                    ></tbody>
 
                 </table>
 
@@ -984,9 +863,9 @@
 
 
 
-        <!-- =================================================
-             EVENT REGISTRATIONS
-             ================================================= -->
+        <!-- ============================= -->
+        <!-- EVENT REGISTRATIONS -->
+        <!-- ============================= -->
 
         <div class="panel large-panel">
 
@@ -1019,6 +898,7 @@
                 >
 
             </div>
+
 
 
             <div class="table-wrap">
@@ -1059,18 +939,8 @@
 
 
                     <tbody
-                        id="eventRegistrationsTableBody"
-                    >
-
-                        <tr>
-
-                            <td colspan="6">
-                                Loading registrations...
-                            </td>
-
-                        </tr>
-
-                    </tbody>
+                        id="eventRegistrationsTable"
+                    ></tbody>
 
                 </table>
 
@@ -1080,9 +950,9 @@
 
 
 
-        <!-- =================================================
-             ATTENDANCE
-             ================================================= -->
+        <!-- ============================= -->
+        <!-- ATTENDANCE -->
+        <!-- ============================= -->
 
         <div
             class="panel large-panel attendance-panel"
@@ -1130,9 +1000,7 @@
             <div
                 id="attendanceSummary"
                 class="attendance-summary"
-            >
-
-            </div>
+            ></div>
 
 
 
@@ -1176,18 +1044,8 @@
 
 
                     <tbody
-                        id="attendanceTableBody"
-                    >
-
-                        <tr>
-
-                            <td colspan="6">
-                                Select an event to load attendance.
-                            </td>
-
-                        </tr>
-
-                    </tbody>
+                        id="attendanceTable"
+                    ></tbody>
 
                 </table>
 
@@ -1199,19 +1057,16 @@
 
 
 
-    <!-- =====================================================
-         STUDENT AREA
-         ===================================================== -->
+    <!-- ============================= -->
+    <!-- STUDENT AREA -->
+    <!-- ============================= -->
 
     <section
         id="studentArea"
-        class="student-only"
     >
 
 
-        <!-- =================================================
-             CLUBS
-             ================================================= -->
+        <!-- CLUBS -->
 
         <div class="section-heading">
 
@@ -1237,16 +1092,15 @@
         </div>
 
 
+
         <div
-            id="clubsList"
+            id="clubs"
             class="content-grid"
         ></div>
 
 
 
-        <!-- =================================================
-             EVENTS
-             ================================================= -->
+        <!-- EVENTS -->
 
         <div
             class="section-heading section-gap"
@@ -1274,52 +1128,15 @@
         </div>
 
 
+
         <div
-            id="eventsList"
+            id="events"
             class="content-grid"
         ></div>
 
 
 
-        <!-- =================================================
-             MY CLUBS
-             ================================================= -->
-
-        <div
-            class="section-heading section-gap"
-        >
-
-            <div>
-
-                <div class="eyebrow">
-                    MY CLUBS
-                </div>
-
-
-                <h2>
-                    My Clubs
-                </h2>
-
-
-                <p>
-                    Clubs you have joined.
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <div
-            id="myClubsList"
-            class="content-grid"
-        ></div>
-
-
-
-        <!-- =================================================
-             MY EVENTS
-             ================================================= -->
+        <!-- MY ACTIVITY -->
 
         <div
             class="section-heading section-gap"
@@ -1347,8 +1164,9 @@
         </div>
 
 
+
         <div
-            id="myEventsList"
+            id="mine"
             class="activity-list"
         ></div>
 
@@ -1359,33 +1177,11 @@
 
 
 
-<!-- =========================================================
-     TOAST
-     ========================================================= -->
-
-<div
-    id="toast"
-    class="toast"
->
-</div>
-
-
-
-<!-- =========================================================
-     FOOTER
-     ========================================================= -->
-
 <footer>
-
     CampusClub Management System
-
 </footer>
 
 
-
-<!-- =========================================================
-     JAVASCRIPT
-     ========================================================= -->
 
 <script src="/js/app.js"></script>
 
